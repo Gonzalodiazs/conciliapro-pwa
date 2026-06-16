@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#F7F5F0">
+<title>ConciliaPro · Repartidor</title>
+<link rel="manifest" href="./pwa/manifest.json">
+<link rel="apple-touch-icon" href="./pwa/icon-192.png">
+<script src="./vendor/cp-auth.js"></script>
+<style>html,body{margin:0;height:100%;background:#F7F5F0}</style>
+</head>
+<body>
+<script>
+// Entrada de la app: con sesión válida → app del repartidor; si no → login.
+location.replace(CPAuth.valido() ? './repartidor.html' : './login.html');
+// PWA
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('./pwa/sw.js').catch(function(){}); }
+</script>
+</body>
+</html>
