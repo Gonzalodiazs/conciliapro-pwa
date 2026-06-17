@@ -151,8 +151,8 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
     </div>
     <div class="card" id="cardEntregas" style="animation-delay:.34s">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div class="c-lbl" style="margin-bottom:0">Entregas de hoy</div>
-        <button onclick="openNuevaEntrega()" style="background:rgba(66,185,133,.14);color:var(--green);border:1px solid rgba(66,185,133,.3);border-radius:8px;padding:5px 11px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer">+ Nueva</button>
+        <div class="c-lbl" style="margin-bottom:0">Mi ruta de hoy</div>
+        <button onclick="cargarMisEntregas()" style="background:rgba(46,102,201,.12);color:var(--blue);border:1px solid rgba(46,102,201,.3);border-radius:8px;padding:5px 11px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer">↻ Actualizar</button>
       </div>
       <div id="rEntregas"></div>
     </div>
@@ -372,15 +372,28 @@ function renderHome(){
   var rc = document.getElementById('routeChip');
   var _pf = (function(){ try{ return JSON.parse(localStorage.getItem('cp_perfil')||'{}'); }catch(e){ return {}; } })();
   if(rc) rc.innerHTML = '<span class="dot"></span>' + (_pf.patente ? (_pf.patente + ' · ') : '') + 'EN RUTA';
-  var es = CP.entregas();
-  var box = document.getElementById('rEntregas');
-  if(!box) return;
-  box.innerHTML = es.length ? es.map(function(e,idx){
-    var firmada = e.estado === 'firmada';
-    var st = firmada ? '<span class="st st-ok">✓ firmada</span>' : '<span class="st st-pend">pendiente</span>';
-    var attrs = firmada ? '' : ' onclick="openSheet(\''+e.id+'\')" style="cursor:pointer"';
-    return '<div class="deliv"'+attrs+'><div class="num">'+(idx+1)+'</div><div class="info"><div class="n">'+e.cliente+'</div><div class="a">'+(e.direccion||'')+' · '+CP.clp(e.monto)+'</div></div>'+st+'</div>';
-  }).join('') : '<div style="color:var(--ink-faint);font-size:12px;padding:12px 0">Sin entregas. Toca “+ Nueva” para agregar.</div>';
+  cargarMisEntregas(); // La ruta la carga PLANTA (tabla `entregas` en Supabase); el chofer solo la ve.
+}
+// Mi ruta de hoy = entregas asignadas desde planta, filtradas por la patente del conductor.
+function cargarMisEntregas(){
+  var box=document.getElementById('rEntregas'); if(!box || !window.CPAuth) return;
+  var pf=(function(){try{return JSON.parse(localStorage.getItem('cp_perfil')||'{}');}catch(e){return {};}})();
+  var pat=pf.patente||'';
+  if(!pat){ box.innerHTML='<div style="color:var(--ink-faint);font-size:12px;padding:12px 0">Sin patente asignada. Pídele a planta que cargue tu ruta.</div>'; return; }
+  var hoy=new Date().toISOString().slice(0,10);
+  fetch(CPAuth.SB_URL+'/rest/v1/entregas?patente=eq.'+encodeURIComponent(pat)+'&fecha=eq.'+hoy+'&order=orden.asc.nullslast&select=*',{headers:{apikey:CPAuth.ANON,Authorization:'Bearer '+CPAuth.ANON}})
+  .then(function(r){return r.json();}).then(function(es){ es=Array.isArray(es)?es:[];
+    var ent=es.filter(function(e){return e.estado==='entregada';}).length;
+    var sub=document.getElementById('rSub'); if(sub) sub.textContent=ent+' de '+es.length+' entregas';
+    var prog=document.getElementById('rProg'); if(prog) prog.style.width=(es.length?Math.round(ent/es.length*100):0)+'%';
+    if(!es.length){ box.innerHTML='<div style="color:var(--ink-faint);font-size:12px;padding:12px 0">No tienes entregas asignadas para hoy. Planta carga tu ruta en el sistema.</div>'; return; }
+    box.innerHTML=es.map(function(e,idx){ var done=e.estado==='entregada';
+      var st=done?'<span class="st st-ok">✓ entregada</span>':'<span class="st st-pend">pendiente</span>';
+      var dir=(e.direccion||'')+(e.comuna?' · '+e.comuna:'');
+      var extra=(e.monto?' · '+(window.CP?CP.clp(e.monto):'$'+e.monto):'')+(e.folio?' · '+e.folio:'');
+      return '<div class="deliv"><div class="num">'+(e.orden||idx+1)+'</div><div class="info"><div class="n">'+(e.cliente||e.codigo_cliente||'—')+'</div><div class="a">'+dir+extra+'</div></div>'+st+'</div>';
+    }).join('');
+  }).catch(function(){ box.innerHTML='<div style="color:var(--ink-faint);font-size:12px;padding:12px 0">No se pudo cargar tu ruta (revisa la conexión).</div>'; });
 }
 // Nueva entrega
 function openNuevaEntrega(){document.getElementById('neBg').classList.add('open');document.getElementById('neSheet').classList.add('open');}
