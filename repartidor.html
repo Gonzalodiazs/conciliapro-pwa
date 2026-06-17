@@ -138,7 +138,7 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
       <span style="font-size:22px;font-weight:700;letter-spacing:-.01em">Escanear factura</span>
       <span style="font-size:12.5px;font-weight:600;opacity:.78">boleta o factura → elegir forma de pago</span>
     </button>
-    <div class="card" style="animation-delay:.05s">
+    <div class="card" id="cardEfectivo" style="animation-delay:.05s">
       <div class="c-lbl">Efectivo a rendir</div>
       <div class="cash"><div class="big" id="rEfectivo">$0</div><div class="sub" id="rSub">0 de 0 entregas</div></div>
       <div class="progress"><i id="rProg" style="width:0"></i></div>
@@ -147,9 +147,9 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
       <div class="action" style="animation-delay:.1s" onclick="openScan()"><div class="ic ic-gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10"/></svg></div><div class="t">Escanear</div><div class="d">boleta / factura</div></div>
       <div class="action" style="animation-delay:.16s" onclick="openSheet()"><div class="ic ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></div><div class="t">Firmar entrega</div><div class="d">digital / biométrica</div></div>
       <div class="action" style="animation-delay:.22s" onclick="openInc()"><div class="ic ic-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.3 3.9a2 2 0 013.4 0l8 13.4a2 2 0 01-1.7 3H4a2 2 0 01-1.7-3z"/><path d="M12 9v4M12 17h.01"/></svg></div><div class="t">Reportar a planta</div><div class="d">mal estado / faltante</div></div>
-      <div class="action" style="animation-delay:.28s"><div class="ic ic-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="t">Mi ubicación</div><div class="d">GPS activo</div></div>
+      <div class="action" style="animation-delay:.28s" onclick="openUbic()"><div class="ic ic-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="t">Mi ubicación</div><div class="d">GPS activo</div></div>
     </div>
-    <div class="card" style="animation-delay:.34s">
+    <div class="card" id="cardEntregas" style="animation-delay:.34s">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div class="c-lbl" style="margin-bottom:0">Entregas de hoy</div>
         <button onclick="openNuevaEntrega()" style="background:rgba(66,185,133,.14);color:var(--green);border:1px solid rgba(66,185,133,.3);border-radius:8px;padding:5px 11px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer">+ Nueva</button>
@@ -301,14 +301,41 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
     </div>
   </div>
 
+  <!-- Sheet perfil -->
+  <div class="sheet-bg" id="perfilBg" onclick="closePerfil()"></div>
+  <div class="sheet" id="perfilSheet">
+    <div class="handle"></div>
+    <h2>Mi perfil</h2>
+    <div class="sub">Sesión del conductor</div>
+    <div style="display:flex;align-items:center;gap:13px;margin-bottom:16px">
+      <div id="pfInicial" style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#F2A03D,#E07F1A);display:grid;place-items:center;color:#2A1A05;font-weight:700;font-size:20px">C</div>
+      <div><div id="pfNombre" style="font-weight:700;font-size:16px">Conductor</div><div id="pfDatos" style="color:var(--ink-dim);font-size:12.5px;font-family:var(--mono)">Sesión activa</div></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closePerfil()">Cerrar</button>
+      <button class="btn btn-primary" style="background:linear-gradient(135deg,#E0703A,#C8402E);color:#fff" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+  <!-- Sheet ubicacion -->
+  <div class="sheet-bg" id="ubicBg" onclick="closeUbic()"></div>
+  <div class="sheet" id="ubicSheet">
+    <div class="handle"></div>
+    <h2>Mi ubicación</h2>
+    <div class="sub">GPS del dispositivo en tiempo real</div>
+    <div id="ubicInfo" style="background:var(--bg);border:1px solid var(--line-2);border-radius:12px;padding:18px;margin-bottom:14px;text-align:center">Obteniendo ubicación…</div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeUbic()">Cerrar</button>
+      <a class="btn btn-primary" id="ubicMap" href="#" target="_blank" style="display:none;text-decoration:none;text-align:center">Ver en mapa</a>
+    </div>
+  </div>
   <div class="toast" id="toast">✓ Entrega registrada con firma</div>
   <!-- Tabbar -->
   <div class="tabbar">
-    <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Inicio</div>
-    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Entregas</div>
+    <div class="tab active" onclick="setTab('inicio',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Inicio</div>
+    <div class="tab" onclick="setTab('entregas',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Entregas</div>
     <div class="tab scan" onclick="openScan()"><div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10"/></svg></div>Escanear</div>
-    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Rendir</div>
-    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a4 4 0 014-4h8a4 4 0 014 4v2"/></svg>Perfil</div>
+    <div class="tab" onclick="setTab('rendir',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Rendir</div>
+    <div class="tab" onclick="setTab('perfil',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a4 4 0 014-4h8a4 4 0 014 4v2"/></svg>Perfil</div>
   </div>
 </div></div>
 <script>
@@ -388,6 +415,24 @@ function openSheet(id){
   document.getElementById('sheetBg').classList.add('open');document.getElementById('sheet').classList.add('open');setTimeout(initSig,300)
 }
 function closeSheet(){document.getElementById('sheetBg').classList.remove('open');document.getElementById('sheet').classList.remove('open')}
+function setTab(t, el){ var tabs=document.querySelectorAll('.tabbar .tab'); for(var i=0;i<tabs.length;i++) tabs[i].classList.remove('active'); if(el) el.classList.add('active');
+  if(t==='inicio'){ try{closeSheet();}catch(e){} window.scrollTo({top:0,behavior:'smooth'}); }
+  else if(t==='entregas'){ var c=document.getElementById('cardEntregas'); if(c) c.scrollIntoView({behavior:'smooth',block:'start'}); }
+  else if(t==='rendir'){ var c=document.getElementById('cardEfectivo'); if(c) c.scrollIntoView({behavior:'smooth',block:'start'}); }
+  else if(t==='perfil'){ openPerfil(); } }
+function openPerfil(){ var p={}; try{p=JSON.parse(localStorage.getItem('cp_perfil')||'{}');}catch(e){}
+  document.getElementById('pfNombre').textContent=p.nombre||'Conductor';
+  document.getElementById('pfInicial').textContent=((p.nombre||'C').trim()[0]||'C').toUpperCase();
+  document.getElementById('pfDatos').textContent=[p.patente?('Patente '+p.patente):'',p.rol||''].filter(Boolean).join(' \u00b7 ')||'Sesión activa';
+  document.getElementById('perfilBg').classList.add('open'); document.getElementById('perfilSheet').classList.add('open'); }
+function closePerfil(){ document.getElementById('perfilBg').classList.remove('open'); document.getElementById('perfilSheet').classList.remove('open'); }
+function cerrarSesion(){ try{ if(window.CPAuth&&CPAuth.logout){ CPAuth.logout(); return; } }catch(e){} localStorage.removeItem('cp_token'); localStorage.removeItem('cp_perfil'); localStorage.removeItem('cp_sesion'); location.replace('./login.html'); }
+function openUbic(){ var box=document.getElementById('ubicInfo'), lnk=document.getElementById('ubicMap'); document.getElementById('ubicBg').classList.add('open'); document.getElementById('ubicSheet').classList.add('open');
+  function pinta(lat,lng,acc){ box.innerHTML='<div style="font-family:var(--mono);font-size:14px;font-weight:600">\ud83d\udccd '+Number(lat).toFixed(5)+', '+Number(lng).toFixed(5)+'</div>'+(acc?'<div style="color:var(--ink-dim);font-size:12px;margin-top:5px;font-family:var(--mono)">precisi\u00f3n ~'+Math.round(acc)+' m</div>':''); lnk.href='https://www.google.com/maps?q='+lat+','+lng; lnk.style.display='block'; }
+  if(typeof ultimaPos!=='undefined' && ultimaPos && ultimaPos.lat){ pinta(ultimaPos.lat, ultimaPos.lng, ultimaPos.acc); }
+  else if(navigator.geolocation){ box.textContent='Obteniendo ubicaci\u00f3n\u2026'; lnk.style.display='none'; navigator.geolocation.getCurrentPosition(function(p){ try{ultimaPos={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy};}catch(e){} pinta(p.coords.latitude,p.coords.longitude,p.coords.accuracy); }, function(){ box.textContent='No se pudo obtener la ubicaci\u00f3n. Revisa los permisos.'; }, {enableHighAccuracy:true,timeout:9000}); }
+  else { box.textContent='Este dispositivo no soporta GPS.'; } }
+function closeUbic(){ document.getElementById('ubicBg').classList.remove('open'); document.getElementById('ubicSheet').classList.remove('open'); }
 var ctx,drawing=false,hasSig=false;
 function initSig(){var c=document.getElementById('sigPad');var r=c.getBoundingClientRect();c.width=r.width;c.height=r.height;ctx=c.getContext('2d');ctx.strokeStyle='#232A33';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
   function pos(e){var rect=c.getBoundingClientRect();var t=e.touches?e.touches[0]:e;return{x:t.clientX-rect.left,y:t.clientY-rect.top}}
