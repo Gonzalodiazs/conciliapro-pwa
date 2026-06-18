@@ -45,7 +45,7 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
 .app-head .route-chip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--green);background:rgba(66,185,133,.1);padding:5px 10px;border-radius:7px;border:1px solid rgba(66,185,133,.25)}
 .app-head .route-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pl 2s infinite}
 @keyframes pl{0%{box-shadow:0 0 0 0 rgba(66,185,133,.5)}70%{box-shadow:0 0 0 6px rgba(66,185,133,0)}100%{box-shadow:0 0 0 0 rgba(66,185,133,0)}}
-.body{flex:1;overflow-y:auto;padding:18px 22px 90px}
+.body{flex:1;overflow-y:auto;padding:18px 22px calc(96px + env(safe-area-inset-bottom));scroll-padding-bottom:calc(96px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .body::-webkit-scrollbar{display:none}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;animation:cardIn .5s var(--ease) both}
 @keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
@@ -57,7 +57,7 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
 .progress i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--green));width:0;border-radius:5px;transition:width 1.2s var(--ease) .3s}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
 .action{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center;cursor:pointer;transition:.2s var(--ease)}
-.action:active{transform:scale(.96);border-color:var(--blue)}
+.action.is-pressed{transform:scale(.96);border-color:var(--blue)}
 .action .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;margin:0 auto 10px}
 .action svg{width:22px;height:22px}
 .action .t{font-size:12.5px;color:var(--ink);font-weight:500}
@@ -75,7 +75,7 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
 .tab svg{width:21px;height:21px}
 .tab.active{color:var(--blue)}
 .tab.scan{margin-top:-26px}
-.tab.scan .ring{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#F2A03D,#E07F1A);display:grid;place-items:center;box-shadow:0 8px 24px rgba(224,173,78,.4);color:#1a1207}
+.tab.scan .ring{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#F2A03D,#E07F1A);display:grid;place-items:center;box-shadow:0 8px 24px rgba(224,173,78,.4);color:#1a1207;pointer-events:none}
 .tab.scan .ring svg{width:24px;height:24px}
 /* sheet (firma) */
 .sheet-bg{position:absolute;inset:0;background:rgba(35,42,51,.38);z-index:60;opacity:0;pointer-events:none;transition:.3s}
@@ -89,14 +89,14 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
 .sig-hint{font-size:10px;color:var(--ink-faint);text-align:center;margin-top:8px}
 .btn-row{display:flex;gap:10px;margin-top:16px}
 .btn{flex:1;padding:14px;border-radius:13px;border:none;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
-.btn-primary{background:var(--green);color:#ffffff}.btn-primary:active{transform:scale(.97)}
+.btn-primary{background:var(--green);color:#ffffff}.btn-primary.is-pressed{transform:scale(.97)}
 .btn-ghost{background:var(--panel-2);color:var(--ink-dim);border:1px solid var(--line)}
-.toast{position:absolute;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--green);color:#ffffff;font-weight:600;font-size:12.5px;padding:12px 22px;border-radius:12px;z-index:80;opacity:0;transition:.3s;box-shadow:0 8px 24px rgba(66,185,133,.4)}
+.toast{position:absolute;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--green);color:#ffffff;font-weight:600;font-size:12.5px;padding:12px 22px;border-radius:12px;z-index:80;opacity:0;pointer-events:none;transition:.3s;box-shadow:0 8px 24px rgba(66,185,133,.4)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 /* scanner overlay */
-.scanner{position:absolute;inset:0;background:var(--bg);z-index:80;display:none;flex-direction:column}
+.scanner{position:absolute;inset:0;background:var(--bg);z-index:80;display:none;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .scanner.open{display:flex}
-.scan-cam{flex:1;margin:18px;border-radius:18px;background:linear-gradient(160deg,#EEEAE0,#E3DDCE);border:1px solid var(--line);position:relative;overflow:hidden;display:grid;place-items:center}
+.scan-cam{flex:0 0 auto;min-height:0;height:42vh;margin:18px;border-radius:18px;background:linear-gradient(160deg,#EEEAE0,#E3DDCE);border:1px solid var(--line);position:relative;overflow:hidden;display:grid;place-items:center}
 .scan-frame{width:75%;height:55%;border:2px solid var(--gold);border-radius:14px;position:relative}
 .scan-frame::before,.scan-frame::after{content:'';position:absolute;width:24px;height:24px;border:3px solid var(--gold)}
 .scan-line{position:absolute;left:0;right:0;height:2px;background:var(--gold);box-shadow:0 0 12px var(--gold);animation:scanmove 2.2s ease-in-out infinite}
@@ -112,7 +112,7 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
 .inc-tipo{background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:11px 8px;color:var(--ink-dim);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:.15s}
 .inc-tipo.sel{border-color:var(--amber);background:rgba(227,168,63,.12);color:var(--amber)}
 .pago{flex:1 1 44%;background:var(--bg);border:1px solid var(--line-2);border-radius:12px;padding:16px 8px;min-height:60px;color:var(--ink-dim);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;transition:.15s var(--ease)}
-.pago:active{transform:scale(.97)}
+.pago.is-pressed{transform:scale(.97)}
 .pago.on{border-color:var(--green);background:rgba(66,185,133,.14);color:var(--green)}
 .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
 .minp{background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:12px;min-height:44px;color:var(--ink);font-family:var(--mono);font-size:13px;outline:none;transition:border-color .15s}
@@ -253,7 +253,7 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
     </div>
   </div>
   <!-- Overlay verificación biométrica -->
-  <div class="sheet-bg" id="bioBg"></div>
+  <div class="sheet-bg" id="bioBg" onclick="closeBio()"></div>
   <div class="sheet" id="bioSheet" style="text-align:center">
     <div class="handle"></div>
     <h2 id="bioTitle">Verificación facial</h2>
@@ -263,6 +263,7 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
       <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--ink-dim)" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a4 4 0 014-4h8a4 4 0 014 4v2"/></svg>
     </div>
     <div id="bioResult" style="font-family:var(--mono);font-size:12px;color:var(--ink-dim);min-height:40px"></div>
+    <div class="btn-row"><button class="btn btn-ghost" style="width:100%" onclick="closeBio()">Cancelar</button></div>
   </div>
   <!-- Sheet reportar incidencia a planta -->
   <div class="sheet-bg" id="incBg" onclick="closeInc()"></div>
@@ -540,9 +541,9 @@ function generarActa(e, receptor, factura, firmaData, tipoFirma){
   CP.addDocumento({ tipo:'ACTA_CONFORME', pdf:actaPdf(e,receptor,factura,firmaData,tipoFirma), cliente:(e&&e.cliente)||'', factura:factura||(e&&e.factura)||'', folio:factura||(e&&e.factura)||'', monto:(e&&e.monto)||0, archivo:'acta-recepcion-'+new Date().getTime()+'.pdf' });
 }
 function confirmSig(){
-  if(!hasSig){alert('Por favor firma primero');return}
+  if(!hasSig){showToast('✍️ Por favor firma primero');return}
   var receptor = (document.getElementById('firmaReceptor').value||'').trim();
-  if(!receptor){ alert('Ingresa el nombre de quien recibe'); document.getElementById('firmaReceptor').focus(); return; }
+  if(!receptor){ showToast('✍️ Ingresa el nombre de quien recibe'); document.getElementById('firmaReceptor').focus(); return; }
   var firmaData = document.getElementById('sigPad').toDataURL('image/png');
   var factura = (document.getElementById('firmaFactura').value||'').trim();
   closeSheet();
@@ -795,7 +796,7 @@ function enviarAPlanta(){
   if(!docPendiente.clientReqId) docPendiente.clientReqId = (new Date().getTime()+'-'+Math.random().toString(36).slice(2)); // idempotencia
   // 1) guarda copia local (para exportar el día) 2) sube a planta (Supabase)
   if(window.CP) CP.addDocumento(Object.assign({}, docPendiente));
-  var btn=document.getElementById('btnEnviar'); btn.disabled=true; btn.classList.add('loading'); btn.textContent='Enviando…';
+  var btn=document.getElementById('btnEnviar'); if(btn){ btn.disabled=true; btn.classList.add('loading'); btn.textContent='Enviando…'; }
   var envio = window.CPSupabase
     ? CPSupabase.insertDocSeguro(docPendiente)
     : fetch(cpApi()+'/documentos', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(docPendiente) }).then(function(r){ if(!r.ok) throw 0; return r.json(); });
@@ -810,7 +811,7 @@ function enviarAPlanta(){
     .then(function(){ _enviando = false; });               // libera el cerrojo siempre
 }
 function cerrarTrasEnvio(msg){
-  var btn=document.getElementById('btnEnviar'); btn.disabled=false; btn.classList.remove('loading'); btn.textContent='Enviar a planta ✓';
+  var btn=document.getElementById('btnEnviar'); if(btn){ btn.disabled=false; btn.classList.remove('loading'); btn.textContent='Enviar a planta ✓'; }
   document.getElementById('pagoBox').style.display='none';
   docPendiente=null; pagoSel=null;
   showToast(msg);
@@ -907,10 +908,43 @@ function closeScan(){ detenerVivo(); document.getElementById('scanner').classLis
   if(window.CPOcrOffline) setTimeout(function(){ try{ CPOcrOffline.precargar(); }catch(e){} }, 6000);
 })();
 (function(){ var ci=document.getElementById('camInput'); if(ci) ci.addEventListener('change', function(){ if(this.files&&this.files[0]) procesarFoto(this.files[0]); this.value=''; }); })();
+// ── Feedback de presión a prueba de "botón pegado" (WebView Android) ──
+// .is-pressed se agrega al tocar y se QUITA SIEMPRE (release/cancel/scroll/blur + timeout),
+// así ningún botón queda visualmente presionado/atascado.
+(function(){
+  var el=null, timer=null;
+  function clear(){ if(el){ el.classList.remove('is-pressed'); el=null; } if(timer){ clearTimeout(timer); timer=null; } }
+  function down(e){
+    var t=(e.target && e.target.closest) ? e.target.closest('.action,.btn,.pago') : null;
+    clear(); if(!t) return;
+    el=t; t.classList.add('is-pressed'); timer=setTimeout(clear,600); // red de seguridad
+  }
+  document.addEventListener('pointerdown',down,true);
+  ['pointerup','pointercancel','pointerleave','touchend','touchcancel'].forEach(function(ev){ document.addEventListener(ev,clear,true); });
+  document.addEventListener('scroll',clear,true);
+  window.addEventListener('blur',clear);
+})();
+// ── Botón físico Atrás de Android (+ tecla Escape): cierra overlays/escáner, no "traba" ──
+(function(){
+  function hayAbierto(){ var sc=document.getElementById('scanner'); return !!document.querySelector('.sheet.open, .sheet-bg.open') || (sc && sc.classList.contains('open')); }
+  function cerrarTodo(){ try{ if(typeof closeAllSheets==='function') closeAllSheets(); }catch(e){} try{ if(typeof closeBio==='function') closeBio(); }catch(e){} try{ var sc=document.getElementById('scanner'); if(sc && sc.classList.contains('open') && typeof closeScan==='function') closeScan(); }catch(e){} }
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && hayAbierto()){ cerrarTodo(); } });
+  try{
+    if(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App){
+      Capacitor.Plugins.App.addListener('backButton', function(){
+        if(hayAbierto()){ cerrarTodo(); } else { try{ Capacitor.Plugins.App.exitApp(); }catch(e){} }
+      });
+    }
+  }catch(e){}
+})();
 // ── Firma biométrica (flujo separado) ──
+var _bioTimers = [];
+function bioClearTimers(){ _bioTimers.forEach(function(t){ try{ clearTimeout(t); }catch(e){} }); _bioTimers = []; }
 function firmarBiometria(tipo){
+  if(window.__bioEnCurso) return;                 // anti doble-tap: no abrir 2 verificaciones
   var receptor=(document.getElementById('firmaReceptor').value||'').trim();
-  if(!receptor){ alert('Ingresa el nombre de quien recibe antes de verificar'); document.getElementById('firmaReceptor').focus(); return; }
+  if(!receptor){ showToast('✍️ Ingresa el nombre de quien recibe antes de verificar'); document.getElementById('firmaReceptor').focus(); return; }
+  window.__bioEnCurso = true; bioClearTimers();
   closeSheet();
   document.getElementById('bioTitle').textContent = tipo==='FACIAL' ? 'Verificación facial' : 'Verificación de huella';
   document.getElementById('bioSub').textContent = tipo==='FACIAL' ? 'Mira a la cámara y mantén el rostro centrado' : 'Coloca el dedo en el sensor';
@@ -920,7 +954,9 @@ function firmarBiometria(tipo){
   var pos = (typeof ultimaPos!=='undefined' && ultimaPos) ? ultimaPos : null;
   var apiBase = CONFIG.API || '';
   var bioBackend = /^https/i.test(apiBase) && !/localhost|127\.0\.0\.1/i.test(apiBase);
-  setTimeout(function(){
+  // Red de seguridad: si en 11s nada cerró el overlay (red colgada), ciérralo (nunca queda pegado).
+  _bioTimers.push(setTimeout(function(){ if(document.getElementById('bioSheet').classList.contains('open')) closeBio(); }, 11000));
+  _bioTimers.push(setTimeout(function(){
     if(!bioBackend){
       // Sin verificador biométrico real disponible: NO se inventa un "match". Se registra la
       // recepción con la evidencia REAL (nombre del receptor + ubicación GPS + marca de tiempo).
@@ -933,32 +969,38 @@ function firmarBiometria(tipo){
     apiPost('/biometria/verificar', payload)
       .then(function(res){ renderBio(res); })
       .catch(function(){ renderBio({ aprobada:false, motivo:'No se pudo verificar la identidad (sin conexión con el verificador). Usa la firma digital.' }); });
-  }, 2000);
+  }, 2000));
 }
 function renderBio(res){
-  var el = document.getElementById('bioResult');
-  document.getElementById('bioScan').style.display='none';
+  var el = document.getElementById('bioResult'); if(!el) return;
+  var bs = document.getElementById('bioScan'); if(bs) bs.style.display='none';
   if(res.aprobada){
     // Solo muestra porcentajes si vienen de un verificador REAL; si no, evidencia honesta (hora + GPS).
     var detalle = (typeof res.scoreMatch==='number' && typeof res.livenessScore==='number')
       ? ('match '+(res.scoreMatch*100).toFixed(0)+'% · liveness '+(res.livenessScore*100).toFixed(0)+'%')
       : (new Date().toLocaleString('es-CL') + (res.lat!=null ? (' · GPS '+Number(res.lat).toFixed(4)+','+Number(res.lng).toFixed(4)) : ''));
     el.innerHTML = '<span style="color:var(--green)">✓ '+res.motivo+'</span><br><span style="color:var(--ink-dim);font-size:11px">'+detalle+'</span>';
-    setTimeout(function(){ closeBio(); var rcp=(document.getElementById('firmaReceptor').value||'').trim()||'Cliente'; var fac=(document.getElementById('firmaFactura').value||'').trim(); if(window.CP){ var e=CP.firmarEntrega(selEntregaId,'BIOMETRICA',null,rcp,fac); renderHome(); generarActa(e, rcp, fac, null, 'BIOMETRICA'); } cerrarEntregaRemota(rcp,'BIOMETRICA'); document.getElementById('firmaReceptor').value=''; document.getElementById('firmaFactura').value=''; showToast('✓ Recepción conforme · entrega registrada'); }, 1400);
+    _bioTimers.push(setTimeout(function(){ closeBio(); var rcp=(document.getElementById('firmaReceptor').value||'').trim()||'Cliente'; var fac=(document.getElementById('firmaFactura').value||'').trim(); if(window.CP){ var e=CP.firmarEntrega(selEntregaId,'BIOMETRICA',null,rcp,fac); renderHome(); generarActa(e, rcp, fac, null, 'BIOMETRICA'); } cerrarEntregaRemota(rcp,'BIOMETRICA'); document.getElementById('firmaReceptor').value=''; document.getElementById('firmaFactura').value=''; showToast('✓ Recepción conforme · entrega registrada'); }, 1400));
   } else {
     el.innerHTML = '<span style="color:var(--red)">✗ '+res.motivo+'</span>';
-    setTimeout(closeBio, 2400);
+    _bioTimers.push(setTimeout(closeBio, 2400));
   }
 }
 function closeBio(){
-  document.getElementById('bioBg').classList.remove('open');
-  document.getElementById('bioSheet').classList.remove('open');
-  document.getElementById('bioScan').style.display='block';
+  bioClearTimers(); window.__bioEnCurso = false;   // cancela timers pendientes y libera el guard
+  var bg=document.getElementById('bioBg'); if(bg) bg.classList.remove('open');
+  var sh=document.getElementById('bioSheet'); if(sh) sh.classList.remove('open');
+  var bs=document.getElementById('bioScan'); if(bs) bs.style.display='block';
 }
 
 // ───────── Reportar incidencia a planta (tiempo real) ─────────
 var incTipo = 'MAL_ESTADO';
-function openInc(){ document.getElementById('incBg').classList.add('open'); document.getElementById('incSheet').classList.add('open'); }
+function openInc(){
+  // Resetea el tipo al default cada apertura (no arrastra la selección anterior).
+  incTipo='MAL_ESTADO';
+  document.querySelectorAll('.inc-tipo').forEach(function(x){ x.classList.toggle('sel', x.dataset.t==='MAL_ESTADO'); });
+  document.getElementById('incBg').classList.add('open'); document.getElementById('incSheet').classList.add('open');
+}
 function closeInc(){ document.getElementById('incBg').classList.remove('open'); document.getElementById('incSheet').classList.remove('open'); }
 document.addEventListener('click', function(e){
   var b = e.target.closest('.inc-tipo'); if(!b) return;
@@ -1002,7 +1044,7 @@ function mostrarBannerInstalar() {
   if (document.getElementById('installBanner')) return;
   var b = document.createElement('div');
   b.id = 'installBanner';
-  b.style.cssText = 'position:absolute;bottom:84px;left:14px;right:14px;background:#FFFFFF;border:1px solid #D6D1C3;border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:12px;z-index:90;animation:msgIn .4s ease both;box-shadow:0 10px 30px rgba(0,0,0,.14)';
+  b.style.cssText = 'position:absolute;bottom:84px;left:14px;right:14px;background:#FFFFFF;border:1px solid #D6D1C3;border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:12px;z-index:55;animation:msgIn .4s ease both;box-shadow:0 10px 30px rgba(0,0,0,.14)';
   b.innerHTML = '<div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#F2A03D,#E07F1A);flex-shrink:0"></div>' +
     '<div style="flex:1;font-size:12px;color:#232A33;line-height:1.4">Instala ConciliaPro en tu teléfono<br><span style="color:#5C6573;font-size:10.5px">Acceso directo, funciona sin conexión</span></div>' +
     '<button id="btnInstall" style="background:linear-gradient(135deg,#F2A03D,#E07F1A);color:#2A1A05;border:none;padding:9px 14px;border-radius:9px;font-weight:600;font-size:12px;cursor:pointer">Instalar</button>' +
