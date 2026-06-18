@@ -114,6 +114,9 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
 .pago{flex:1 1 44%;background:var(--bg);border:1px solid var(--line-2);border-radius:12px;padding:16px 8px;min-height:60px;color:var(--ink-dim);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;transition:.15s var(--ease)}
 .pago.is-pressed{transform:scale(.97)}
 .pago.on{border-color:var(--green);background:rgba(66,185,133,.14);color:var(--green)}
+.pago-sub{background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:9px 12px;min-height:40px;color:var(--ink-dim);font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:.15s var(--ease)}
+.pago-sub:active{transform:scale(.97)}
+.pago-sub.on{border-color:var(--blue);background:rgba(46,102,201,.12);color:var(--blue)}
 .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
 .minp{background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:12px;min-height:44px;color:var(--ink);font-family:var(--mono);font-size:13px;outline:none;transition:border-color .15s}
 .minp:focus{border-color:var(--blue)}
@@ -208,6 +211,28 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
         <button class="pago" data-pago="CREDITO" onclick="selPago(this)">💳 Crédito</button>
         <button class="pago" data-pago="CHEQUE" onclick="selPago(this)">🧾 Cheque</button>
         <button class="pago" data-pago="TRANSFERENCIA" onclick="selPago(this)">🏦 Transferencia</button>
+        <button class="pago" data-pago="MIXTO" onclick="selPago(this)">🔀 Mixto</button>
+      </div>
+      <!-- Mixto: ¿con qué se pagó? (multi-selección) -->
+      <div id="mixtoBox" style="display:none;margin-bottom:10px">
+        <div style="font-size:10px;color:var(--ink-faint);font-family:var(--mono);letter-spacing:.05em;margin-bottom:7px">¿CON QUÉ SE PAGÓ? · marca los que apliquen</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <button class="pago-sub" data-mc="EFECTIVO" onclick="toggleMixtoComp(this)">Efectivo</button>
+          <button class="pago-sub" data-mc="DEBITO" onclick="toggleMixtoComp(this)">Débito</button>
+          <button class="pago-sub" data-mc="CREDITO" onclick="toggleMixtoComp(this)">Crédito</button>
+          <button class="pago-sub" data-mc="CHEQUE" onclick="toggleMixtoComp(this)">Cheque</button>
+          <button class="pago-sub" data-mc="TRANSFERENCIA" onclick="toggleMixtoComp(this)">Transferencia</button>
+        </div>
+      </div>
+      <!-- Crédito: clasificación contable chilena (CxP / DxP / Letra / P.A.) -->
+      <div id="creditoBox" style="display:none;margin-bottom:10px">
+        <div style="font-size:10px;color:var(--ink-faint);font-family:var(--mono);letter-spacing:.05em;margin-bottom:7px">TIPO DE CRÉDITO · clasificación contable</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <button class="pago-sub" data-ct="CXP" onclick="selCreditoTipo(this)">CxP · Cuentas por pagar</button>
+          <button class="pago-sub" data-ct="DXP" onclick="selCreditoTipo(this)">DxP · Documentos por pagar</button>
+          <button class="pago-sub" data-ct="LETRA" onclick="selCreditoTipo(this)">Letra</button>
+          <button class="pago-sub" data-ct="PA" onclick="selCreditoTipo(this)">P.A. · Pago a plazo</button>
+        </div>
       </div>
       <input id="pagoFirmante" placeholder="Nombre de quien recibe / firma" style="width:100%;background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:12px;min-height:44px;color:var(--ink);font-family:var(--sans);font-size:13px;outline:none;box-sizing:border-box">
       <div style="display:flex;gap:8px;margin-top:10px">
@@ -706,8 +731,10 @@ function procesarFoto(file){
 // Documento preparado, a la espera de forma de pago + envío a planta
 var docPendiente = null, pagoSel = null;
 function mostrarPago(){
-  pagoSel=null;
-  document.querySelectorAll('#pagoBtns .pago').forEach(function(b){ b.classList.remove('on'); });
+  pagoSel=null; creditoTipo=null; mixtoComps=[];
+  document.querySelectorAll('#pagoBtns .pago, #mixtoBox .pago-sub, #creditoBox .pago-sub').forEach(function(b){ b.classList.remove('on'); });
+  var mb=document.getElementById('mixtoBox'); if(mb) mb.style.display='none';
+  var cb=document.getElementById('creditoBox'); if(cb) cb.style.display='none';
   document.getElementById('pagoBox').style.display='block';
 }
 function finalizarEscaneo(ted, file){
@@ -773,10 +800,43 @@ function corregirDatos(){
   document.getElementById('mRut').value   = docPendiente.rut||'';
   document.getElementById('scanManual').style.display='block';
 }
+var creditoTipo = null, mixtoComps = [];
 function selPago(el){
   pagoSel = el.getAttribute('data-pago');
   document.querySelectorAll('#pagoBtns .pago').forEach(function(b){ b.classList.remove('on'); });
   el.classList.add('on');
+  actualizarSubpagos();
+}
+// Muestra/oculta los sub-paneles según la forma de pago elegida (Mixto / Crédito).
+function actualizarSubpagos(){
+  var esMixto = pagoSel==='MIXTO';
+  var esCredito = pagoSel==='CREDITO' || (esMixto && mixtoComps.indexOf('CREDITO')>=0);
+  var mb=document.getElementById('mixtoBox'), cb=document.getElementById('creditoBox');
+  if(mb) mb.style.display = esMixto ? 'block':'none';
+  if(cb) cb.style.display = esCredito ? 'block':'none';
+  if(!esMixto){ mixtoComps=[]; document.querySelectorAll('#mixtoBox .pago-sub').forEach(function(b){ b.classList.remove('on'); }); }
+  if(!esCredito){ creditoTipo=null; document.querySelectorAll('#creditoBox .pago-sub').forEach(function(b){ b.classList.remove('on'); }); }
+}
+function selCreditoTipo(el){
+  creditoTipo = el.getAttribute('data-ct');
+  document.querySelectorAll('#creditoBox .pago-sub').forEach(function(b){ b.classList.remove('on'); });
+  el.classList.add('on');
+}
+function toggleMixtoComp(el){
+  var v=el.getAttribute('data-mc'), i=mixtoComps.indexOf(v);
+  if(i>=0){ mixtoComps.splice(i,1); el.classList.remove('on'); } else { mixtoComps.push(v); el.classList.add('on'); }
+  actualizarSubpagos(); // si se marca/desmarca Crédito dentro del mixto, muestra/oculta su clasificación
+}
+// String final de forma de pago con su detalle (Mixto: con qué / Crédito: clasificación contable).
+function formaPagoFinal(){
+  if(pagoSel==='MIXTO'){
+    var fp='MIXTO';
+    if(mixtoComps.length) fp += ' ('+mixtoComps.join('+')+')';
+    if(mixtoComps.indexOf('CREDITO')>=0 && creditoTipo) fp += ' · '+creditoTipo;
+    return fp;
+  }
+  if(pagoSel==='CREDITO' && creditoTipo) return 'CREDITO '+creditoTipo;
+  return pagoSel;
 }
 // Base de la API: localStorage cp_api, o el mismo origen donde corre la PWA
 function cpApi(){ var a=localStorage.getItem('cp_api'); if(a) return a.replace(/\/$/,''); return location.origin + '/api'; }
@@ -787,7 +847,7 @@ function enviarAPlanta(){
   if(!pagoSel){ showToast('Selecciona la forma de pago'); return; }
   _enviando = true;
   var firmante=(document.getElementById('pagoFirmante').value||'').trim();
-  docPendiente.formaPago = pagoSel;
+  docPendiente.formaPago = formaPagoFinal();
   docPendiente.firmante = firmante;
   var _p = (function(){ try{ return JSON.parse(localStorage.getItem('cp_perfil')||'{}'); }catch(e){ return {}; } })();
   docPendiente.repartidor = _p.nombre || '';
