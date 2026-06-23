@@ -160,9 +160,13 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
 .mini-btn{background:rgba(46,102,201,.1);color:var(--blue);border:1px solid rgba(46,102,201,.28);border-radius:9px;padding:6px 12px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer}
 .sec-title{font-family:var(--display);font-size:15px;color:var(--ink);font-weight:600}
 /* Cerrar paneles: botón X arriba-derecha + arrastrar hacia abajo (swipe) */
-.sheet-x{position:absolute;top:13px;right:15px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-dim);font-size:15px;line-height:1;cursor:pointer;display:grid;place-items:center;z-index:3;padding:0;-webkit-appearance:none}
-.sheet-x:active{transform:scale(.9)}
+.sheet-x{position:absolute;top:12px;right:14px;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-dim);font-size:17px;line-height:1;cursor:pointer;display:grid;place-items:center;z-index:80;padding:0;-webkit-appearance:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.sheet-x:active{transform:scale(.9);background:var(--line)}
 .sheet .handle{cursor:grab;width:46px;height:5px}
+/* WebView Android: el 300ms tap-delay / gestos a veces se "comen" el click → respuesta inmediata en controles */
+button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
+/* El panel nunca debe pasar de la pantalla (así la X de arriba siempre queda visible y alcanzable) */
+.sheet{max-height:92dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 </style>
 </head>
 <body>
@@ -1540,9 +1544,20 @@ function closeScan(){ detenerVivo(); document.getElementById('scanner').classLis
   var sheets=[['sheet','closeSheet'],['bioSheet','closeBio'],['incSheet','closeInc'],['neSheet','closeNuevaEntrega'],['perfilSheet','closePerfil'],['ubicSheet','closeUbic'],['cpAttSheet','closeCpAttach']];
   sheets.forEach(function(s){
     var sh=document.getElementById(s[0]); if(!sh) return;
-    function cerrar(){ try{ window[s[1]](); }catch(e){ sh.classList.remove('open'); } }
+    var _cerrando=false;
+    function cerrar(ev){
+      if(ev){ try{ ev.preventDefault(); ev.stopPropagation(); }catch(_){} }
+      if(_cerrando) return; _cerrando=true; setTimeout(function(){ _cerrando=false; }, 350); // anti doble-disparo (pointerup+click)
+      try{ if(typeof window[s[1]]==='function'){ window[s[1]](); } else { sh.classList.remove('open'); } }
+      catch(e){ sh.classList.remove('open'); }
+      var bgId=(s[0]==='sheet')?'sheetBg':s[0].replace(/Sheet$/,'Bg'); var bg=document.getElementById(bgId); if(bg) bg.classList.remove('open'); // por si la fn no quita el fondo
+    }
     var x=document.createElement('button'); x.className='sheet-x'; x.type='button'; x.setAttribute('aria-label','Cerrar'); x.innerHTML='&#10005;';
-    x.addEventListener('click', cerrar); sh.appendChild(x);
+    // WebView Android: el 'click' en botones absolutos a veces no dispara → escuchar también pointerup (y touchend de respaldo).
+    x.addEventListener('click', cerrar);
+    x.addEventListener('pointerup', cerrar);
+    x.addEventListener('touchend', cerrar);
+    sh.appendChild(x);
     var sy=0, dy=0, drag=false;
     function down(e){
       var t=e.target; if(t && t.closest && t.closest('.sheet-x,input,textarea,canvas,button,a')) return; // no arrastrar desde controles
