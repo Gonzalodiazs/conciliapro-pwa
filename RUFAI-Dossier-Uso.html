@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUFAI · Dossier de uso — del repartidor a la conciliación</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;600&display=swap');
+  :root{--bg:#F7F5F0;--panel:#fff;--ink:#232A33;--dim:#5C6573;--faint:#7A828F;--line:#E8E4D9;--line2:#D6D1C3;--blue:#3DA8F5;--blued:#1E4FA8;--green:#1E7F54;--amber:#97640F;--red:#C8402E;--violet:#5B55C0;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--disp:'Fraunces',serif}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#ece9e2;color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page{width:210mm;min-height:296mm;margin:14px auto;background:var(--bg);padding:20mm 18mm;box-shadow:0 6px 30px rgba(0,0,0,.12);position:relative}
+  h1{font-family:var(--disp);font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+  h2{font-family:var(--disp);font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+  h3{font-size:13px;font-weight:700;margin:0 0 6px}
+  p{font-size:12.5px;color:var(--ink);margin-bottom:9px}
+  .small{font-size:11px;color:var(--dim)}
+  .mono{font-family:var(--mono)}
+  .brand{font-family:var(--disp);font-weight:600;letter-spacing:-.01em}
+  .brand .ai{color:#111}.brand .ruf{color:var(--blue)}
+  .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+  .sec{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--blued);margin:0 0 10px;display:flex;align-items:center;gap:9px}
+  .sec::before{content:'';display:inline-block;width:22px;height:2px;background:var(--blue)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .pill{display:inline-block;font-family:var(--mono);font-size:9.5px;padding:2px 9px;border-radius:20px;font-weight:600}
+  .pill.b{background:rgba(61,168,245,.15);color:var(--blued)}.pill.g{background:rgba(30,127,84,.14);color:var(--green)}.pill.a{background:rgba(151,100,15,.14);color:var(--amber)}.pill.v{background:rgba(91,85,192,.14);color:var(--violet)}
+  /* flujo */
+  .flow{display:flex;align-items:stretch;gap:0;margin:6px 0 2px}
+  .step{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:13px 12px;position:relative}
+  .step .n{width:24px;height:24px;border-radius:50%;background:var(--blue);color:#08233f;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+  .step .t{font-weight:700;font-size:12.5px;margin-bottom:3px}
+  .step .d{font-size:10.5px;color:var(--dim);line-height:1.35}
+  .arrow{align-self:center;color:var(--blue);font-size:18px;padding:0 5px;flex:0 0 auto}
+  /* phone mock */
+  .phone{width:230px;border:1px solid var(--line2);border-radius:20px;background:#fff;padding:12px;margin:0 auto}
+  .ph-head{display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--faint);margin-bottom:8px}
+  .ck{background:linear-gradient(140deg,#fff,#FBF9F4);border:1px solid var(--line);border-radius:12px;padding:11px}
+  .ck .l{font-family:var(--mono);font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+  .ck .v{font-size:18px;font-weight:700;margin-top:2px}
+  .mdrow{display:flex;align-items:center;gap:8px;background:#FBF9F4;border:1px solid var(--line2);border-radius:9px;padding:7px 9px;margin-top:6px;font-size:11px}
+  .chk{width:17px;height:17px;border-radius:50%;background:var(--green);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;margin-left:auto}
+  .chk.off{background:transparent;border:2px solid var(--line2)}
+  .alert{background:rgba(151,100,15,.10);border:1px solid rgba(151,100,15,.3);color:var(--amber);border-radius:9px;padding:7px 9px;font-size:10.5px;font-weight:600;margin-top:8px}
+  /* tabla oficina */
+  table{width:100%;border-collapse:collapse;font-size:11px;background:#fff;border-radius:10px;overflow:hidden}
+  th{font-family:var(--mono);font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);text-align:left;padding:8px 9px;border-bottom:1px solid var(--line);background:#FBF9F4}
+  td{padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
+  td.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:none}
+  .lnk{color:var(--blued);font-family:var(--mono);font-size:10px;white-space:nowrap}
+  .diff{color:var(--red);font-weight:600}
+  .data-callout{background:#0d1b2a;color:#dfe7f0;border-radius:14px;padding:16px 18px;font-family:var(--mono);font-size:11px;line-height:1.7}
+  .data-callout .k{color:#7fb3e8}
+  .data-callout b{color:#fff}
+  ul{margin:0 0 8px 16px}li{font-size:12px;margin-bottom:4px}
+  .foot{position:absolute;bottom:12mm;left:18mm;right:18mm;display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--faint);border-top:1px solid var(--line);padding-top:6px}
+  .tag{font-family:var(--mono);font-size:9px;color:var(--green)}
+  @media print{ body{background:#fff} .page{margin:0;box-shadow:none;width:auto;min-height:auto;padding:16mm 14mm;page-break-after:always} .page:last-child{page-break-after:auto} }
+</style>
+</head>
+<body>
+
+<!-- ░░░ PÁGINA 1 · PORTADA + RESUMEN ░░░ -->
+<div class="page">
+  <div class="kicker">Documento operativo · Comercial Santa Elena (Soprole)</div>
+  <div style="display:flex;align-items:baseline;gap:14px;margin:10px 0 4px">
+    <span class="brand" style="font-size:38px"><span class="ruf">RUF</span><span class="ai" style="border-bottom:3px solid #111">AI</span></span>
+  </div>
+  <h1 style="margin-top:14px">Dossier de uso<br>Del repartidor a la conciliación de comprobantes</h1>
+  <p class="small" style="margin-top:10px">Cómo una factura escaneada en terreno y su comprobante de pago llegan, asociados, al módulo <b>Comprobantes</b> de la oficina. Documentado con datos reales del sistema (Supabase <span class="mono">ekmkzaogpnnqcctcnqpr</span>).</p>
+
+  <div style="height:14px"></div>
+  <div class="sec">Resumen ejecutivo</div>
+  <div class="card">
+    <p>El repartidor <b>escanea la factura</b> al entregar, registra <b>cómo le pagaron</b> (efectivo, transferencia, mixto o crédito) y adjunta el <b>comprobante de pago</b> —en el momento o más tarde en el día—. Todo viaja a Supabase y se refleja en la oficina: el módulo <b>Comprobantes › Facturas + comprobante de pago</b> muestra cada factura con su comprobante asociado, el monto pagado, la <b>diferencia (factura − pago)</b> y enlaces a ambos PDF.</p>
+    <div class="grid3" style="margin-top:6px">
+      <div class="ck"><div class="l">Facturas con pago reflejadas</div><div class="v">4</div></div>
+      <div class="ck"><div class="l">Monto pagado conciliado</div><div class="v">$186.545</div></div>
+      <div class="ck"><div class="l">Cada fila enlaza</div><div class="v" style="font-size:13px">Factura + Pago</div></div>
+    </div>
+    <p class="small" style="margin-top:10px;margin-bottom:0"><span class="tag">✓ verificado en vivo</span> &nbsp;Los folios reales <span class="mono">38848344</span>, <span class="mono">38850445</span> y <span class="mono">38850453</span> aparecen en la vista de pago con sus dos PDF (factura <span class="mono">dte-…pdf</span> + comprobante <span class="mono">pago-…pdf</span>).</p>
+  </div>
+
+  <div class="sec">El flujo, de punta a punta</div>
+  <div class="flow">
+    <div class="step"><div class="n">1</div><div class="t">Escanea</div><div class="d">El chofer fotografía la factura. La app la endereza y la lee (IA / OCR / manual).</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">2</div><div class="t">Cobra + respalda</div><div class="d">Elige forma de pago y adjunta el comprobante (ahora o después en el día).</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">3</div><div class="t">Sincroniza</div><div class="d">Factura PDF + comprobante PDF al Storage; una fila en <span class="mono">documentos</span>. Cola offline si no hay señal.</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">4</div><div class="t">Se refleja</div><div class="d">La oficina ve la factura con su comprobante asociado en el módulo Comprobantes.</div></div>
+  </div>
+
+  <div class="foot"><span>RUFAI · Dossier de uso</span><span>Generado 2026-06-23</span><span>Pág. 1 / 3</span></div>
+</div>
+
+<!-- ░░░ PÁGINA 2 · EN LA APP ░░░ -->
+<div class="page">
+  <div class="sec">Etapa 1–2 · En la app del repartidor</div>
+  <div class="grid2" style="align-items:start">
+    <div>
+      <h3>Escanear → forma de pago → comprobante</h3>
+      <p>Tras tomar la foto, la app extrae folio, RUT, fecha y montos. El chofer marca cómo le pagaron; si <b>no</b> es efectivo, adjunta el comprobante de pago —que la app también lee con IA (monto, fecha, N° de operación, RUT)—.</p>
+      <ul>
+        <li><b>Efectivo:</b> no requiere comprobante (es plata en mano).</li>
+        <li><b>Transferencia / débito / cheque:</b> requiere comprobante de respaldo.</li>
+        <li><b>Mixto:</b> desglosa cuánto se pagó con cada método.</li>
+        <li><b>Crédito (fiado):</b> queda como “a cobrar después”, no exige comprobante.</li>
+      </ul>
+      <p class="small">El comprobante puede adjuntarse <b>más tarde el mismo día</b> desde el panel “Cuadre del día”, sin frenar la entrega.</p>
+    </div>
+    <div class="phone">
+      <div class="ph-head"><span>9:41</span><span style="color:var(--green)">● EN LÍNEA</span></div>
+      <div style="font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--faint);margin-bottom:4px">MI DÍA</div>
+      <div class="alert" style="background:rgba(30,127,84,.10);border-color:rgba(30,127,84,.3);color:var(--green)">✓ Día cuadrado · puedes volver a planta</div>
+      <div class="mdrow">🚚 <span>Ruta · 8 de 8 entregadas</span><span class="chk">✓</span></div>
+      <div class="mdrow">📄 <span>Facturas · 12 hoy</span><span class="chk">✓</span></div>
+      <div class="mdrow">💰 <span>Cuadre · todo respaldado</span><span class="chk">✓</span></div>
+      <div style="height:9px"></div>
+      <div class="ck"><div class="l">💵 Efectivo a rendir</div><div class="v">$ 642.000</div></div>
+    </div>
+  </div>
+
+  <div style="height:6px"></div>
+  <div class="card">
+    <h3>Comprobante de pago — leído por IA y verificable</h3>
+    <p style="margin-bottom:4px">Al fotografiar la transferencia, la app rellena los datos y el chofer los confirma. Queda ligado a la factura por su identificador idempotente (<span class="mono">client_req_id</span>), de modo que el comprobante diferido se engancha con la factura correcta aunque se suba horas después.</p>
+    <div class="grid3" style="margin-top:4px">
+      <div class="ck"><div class="l">Monto pagado</div><div class="v" style="font-size:15px">$ 100.000</div></div>
+      <div class="ck"><div class="l">N° operación</div><div class="v" style="font-size:15px">123</div></div>
+      <div class="ck"><div class="l">Fecha de pago</div><div class="v" style="font-size:15px">2026-06-20</div></div>
+    </div>
+  </div>
+
+  <div class="sec">Etapa 3 · Cómo viaja el dato (sincronización)</div>
+  <div class="card">
+    <p style="margin-bottom:6px">Cada captura genera <b>dos archivos en el Storage privado</b> y <b>una fila</b> en la tabla <span class="mono">documentos</span>. Si no hay señal, queda en cola offline y se sube solo al recuperar conexión (con reintento idempotente, sin duplicar).</p>
+    <div class="data-callout">
+      tabla <b>documentos</b> (1 fila por factura)<br>
+      &nbsp;&nbsp;<span class="k">folio</span>, <span class="k">rut</span>, <span class="k">fecha</span>, <span class="k">valor_con_iva</span>, <span class="k">forma_pago</span>, <span class="k">repartidor</span>, <span class="k">patente</span>, <span class="k">gps</span><br>
+      &nbsp;&nbsp;<span class="k">pdf_url</span> ───────────────► <b>dte-…pdf</b> &nbsp;(la factura)<br>
+      &nbsp;&nbsp;<span class="k">comprobante_pago_url</span> ──► <b>pago-…pdf</b> &nbsp;(el comprobante)<br>
+      &nbsp;&nbsp;<span class="k">pago_monto</span>, <span class="k">pago_fecha</span>, <span class="k">pago_referencia</span>, <span class="k">pago_rut_origen</span>, <span class="k">pago_detalle</span>
+    </div>
+    <p class="small" style="margin:8px 0 0"><b>La asociación es directa:</b> factura y comprobante son la <b>misma fila</b> — no hay que “cruzarlos” después. Acceso cerrado con RLS: solo usuarios autenticados leen; el repartidor solo inserta.</p>
+  </div>
+  <div class="foot"><span>RUFAI · Dossier de uso</span><span>Generado 2026-06-23</span><span>Pág. 2 / 3</span></div>
+</div>
+
+<!-- ░░░ PÁGINA 3 · EN LA OFICINA ░░░ -->
+<div class="page">
+  <div class="sec">Etapa 4 · En la oficina — módulo Comprobantes</div>
+  <p>Vista <b>“Facturas + comprobante de pago”</b>. Cada factura cargada por un repartidor aparece con su comprobante asociado, el monto pagado leído del respaldo, la <b>diferencia (factura − pago)</b> y enlaces para abrir o descargar ambos PDF en un ZIP. Estos son los pares <b>reales</b> hoy en el sistema:</p>
+
+  <table>
+    <thead><tr><th>Folio</th><th>Repartidor</th><th>Forma de pago</th><th>Total c/IVA</th><th>Pagado</th><th>Diferencia</th><th>Respaldos</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="mono">38848344</td><td>Test Login</td><td><span class="pill b">TRANSFERENCIA</span></td>
+        <td class="num">$1.815.124</td><td class="num">$100.000</td><td class="num diff">$1.715.124</td>
+        <td><span class="lnk">👁 Factura</span> · <span class="lnk">👁 Pago</span></td>
+      </tr>
+      <tr>
+        <td class="mono">38850445</td><td>Gonzalo</td><td><span class="pill v">MIXTO (TRANSF+EFVO)</span></td>
+        <td class="num">$156.529</td><td class="num">$31.822</td><td class="num diff">$124.707</td>
+        <td><span class="lnk">👁 Factura</span> · <span class="lnk">👁 Pago</span></td>
+      </tr>
+      <tr>
+        <td class="mono">38850453</td><td>Gonzalo</td><td><span class="pill v">MIXTO (TRANSF+CRÉDITO)</span></td>
+        <td class="num">$53.723</td><td class="num">—</td><td class="num">—</td>
+        <td><span class="lnk">👁 Factura</span> · <span class="lnk">👁 Pago</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="small" style="margin-top:8px"><span class="tag">✓ datos reales</span> &nbsp;Tomados en vivo del sistema. La columna <b>Diferencia</b> marca en rojo cuando el comprobante es por menos que el total (caso del folio 38848344: respaldo parcial de $100.000 sobre $1.815.124) — una alerta para que la oficina revise antes de conciliar contra el banco.</p>
+
+  <div style="height:6px"></div>
+  <div class="grid2">
+    <div class="card" style="margin-bottom:0">
+      <h3>Qué entrega esta vista a la oficina</h3>
+      <ul>
+        <li>Cada factura con su <b>comprobante de pago</b> al lado.</li>
+        <li><b>Repartidor</b> y <b>patente</b> que la capturó.</li>
+        <li><b>Neto, IVA y total</b> de la factura.</li>
+        <li><b>Monto pagado</b> leído del comprobante.</li>
+        <li><b>Diferencia (factura − pago)</b> con alerta visual.</li>
+        <li>Abrir cada PDF o <b>descargar ambos en un ZIP</b>.</li>
+        <li>Exportar todo a <b>Excel</b> y detección de comprobante repetido / N° de operación duplicado.</li>
+      </ul>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h3>Ejemplo real · folio 38848344</h3>
+      <div class="data-callout" style="font-size:10.5px;line-height:1.8">
+        <span class="k">factura</span> &nbsp;TRANSFERENCIA · <b>$1.815.124</b><br>
+        <span class="k">repartidor</span> &nbsp;Test Login<br>
+        <span class="k">comprobante</span> &nbsp;<b>$100.000</b> · op. 123 · 2026-06-20<br>
+        <span class="k">pdf_url</span> &nbsp;…/dte-1782184238632-196100.pdf<br>
+        <span class="k">comprobante_pago_url</span> &nbsp;…/pago-1782184238637-…pdf<br>
+        <span class="k">diferencia</span> &nbsp;<b style="color:#ff8a7a">$1.715.124</b> → revisar
+      </div>
+    </div>
+  </div>
+
+  <p class="small" style="margin-top:12px">Las facturas de transporte cargadas por repartidores quedan <b>aisladas</b> en este módulo (no se mezclan con la conciliación bancaria). El comprobante puede haberse adjuntado en el momento de la entrega o más tarde el mismo día; en ambos casos se refleja aquí ligado a su factura.</p>
+
+  <div class="foot"><span class="brand"><span class="ruf">RUF</span><span class="ai">AI</span> · Comercial Santa Elena</span><span>Generado 2026-06-23</span><span>Pág. 3 / 3</span></div>
+</div>
+
+</body>
+</html>
