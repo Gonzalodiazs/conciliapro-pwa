@@ -315,6 +315,8 @@ body{background:var(--bg);font-family:var(--sans);min-height:100vh;overflow:hidd
       <button class="btn btn-primary" style="width:100%;min-height:48px" onclick="guardarManual()">Confirmar datos ✓</button>
     </div>
     <div id="pagoBox" style="display:none;padding:14px 22px 0">
+      <!-- Validación: el folio escaneado debe coincidir con la ruta que planta asignó a este transporte -->
+      <div id="rutaMatch" style="display:none;align-items:center;gap:8px;border-radius:10px;padding:9px 11px;margin-bottom:10px;font-size:12px;font-weight:600;line-height:1.3"></div>
       <div style="font-size:10.5px;color:var(--ink-faint);font-family:var(--mono);letter-spacing:.06em;margin-bottom:9px">FORMA DE PAGO DE LA FACTURA</div>
       <div id="pagoBtns" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px">
         <button class="pago" data-pago="EFECTIVO" onclick="selPago(this)">💵 Efectivo</button>
@@ -1055,6 +1057,7 @@ function mostrarPago(){
   var cpb=document.getElementById('cpagoBox'); if(cpb) cpb.style.display='none';
   try{ quitarComprobantePago(); }catch(e){}
   pintarVisada(); // refleja el timbre+firma que detectó la IA (o lo que el chofer marque)
+  try{ pintarRutaMatch(); }catch(e){} // valida que el folio coincida con la ruta que planta asignó
   document.getElementById('pagoBox').style.display='block';
 }
 // Factura "visada": timbre del proveedor + firma del cliente. La IA la prefija; el chofer puede confirmar/cambiar.
@@ -1066,6 +1069,23 @@ function pintarVisada(){
   if(ia){ ia.textContent=(docPendiente && (docPendiente.timbreProveedor||docPendiente.firmaReceptor)) ? ('· IA '+(docPendiente.timbreProveedor?'timbre✓':'timbre✗')+' '+(docPendiente.firmaReceptor?'firma✓':'firma✗')) : ''; }
 }
 function toggleVisada(){ if(!docPendiente) return; docPendiente.visada=!docPendiente.visada; pintarVisada(); }
+// El folio escaneado debe coincidir con un folio de la ruta que planta cargó a este transporte.
+function entregaPorFolio(fol){ var r=(typeof entregasPlanta!=='undefined'&&entregasPlanta)?entregasPlanta:[]; fol=String(fol||'').trim(); if(!fol) return null; return r.filter(function(e){ return e&&e.folio&&String(e.folio).trim()===fol; })[0]||null; }
+function pintarRutaMatch(){
+  var box=document.getElementById('rutaMatch'); if(!box) return;
+  var ruta=(typeof entregasPlanta!=='undefined'&&entregasPlanta)?entregasPlanta:[];
+  var fol=(docPendiente&&docPendiente.folio)?String(docPendiente.folio).trim():'';
+  if(!ruta.length || !fol){ box.style.display='none'; return; } // planta no cargó ruta, o sin folio → no se valida
+  var m=entregaPorFolio(fol);
+  box.style.display='flex';
+  if(m){
+    box.style.background='rgba(30,127,84,.10)'; box.style.color='#0F5E3C'; box.style.border='1px solid rgba(30,127,84,.32)';
+    box.innerHTML='✓ Folio en tu ruta · '+escEnt(m.cliente||m.codigo_cliente||'entrega asignada');
+  } else {
+    box.style.background='rgba(200,64,46,.10)'; box.style.color='#9E2417'; box.style.border='1px solid rgba(200,64,46,.32)';
+    box.innerHTML='⚠ El folio '+escEnt(fol)+' NO está en la ruta que te asignó planta';
+  }
+}
 function finalizarEscaneo(ted, file){
   var mf=document.getElementById('scanManual');
   if(ted){
@@ -1287,6 +1307,13 @@ function enviarAPlanta(){
     var _h0=new Date(); _h0.setHours(0,0,0,0);
     var _dup=(CP.documentos()||[]).filter(function(x){ return x.folio && String(x.folio).trim()===_folDup && (x.ts||0)>=_h0.getTime() && x.tipo!=='ACTA_CONFORME'; })[0];
     if(_dup){ var _min=Math.max(0,Math.round((Date.now()-(_dup.ts||Date.now()))/60000)); if(!confirm('El folio '+_folDup+' ya lo enviaste hoy'+(_min?(' (hace '+_min+' min)'):'')+'.\n¿Enviar de nuevo? Puede ser un cobro duplicado.')) return; }
+  }
+  // El folio debe COINCIDIR con la ruta que planta asignó a este transporte (si hay ruta cargada).
+  if(typeof entregasPlanta!=='undefined' && entregasPlanta && entregasPlanta.length){
+    var _fr=(docPendiente.folio||'').trim();
+    if(_fr && !entregaPorFolio(_fr)){
+      if(!confirm('El folio '+_fr+' NO está en la ruta que te asignó planta.\n¿Es la factura correcta? ¿Enviar igual?')) return;
+    }
   }
   // Aviso suave: pago no-efectivo sin comprobante adjunto (no bloquea).
   var _soloEfvo=(pagoSel==='EFECTIVO')||(pagoSel==='MIXTO'&&mixtoComps.length>0&&mixtoComps.every(function(m){return m==='EFECTIVO';}));
