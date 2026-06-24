@@ -1124,15 +1124,16 @@ function setScanCargando(titulo,desc){
   if(d) d.innerHTML=desc+'<span class="cp-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
 }
 function procesarFoto(file){
-  setScanCargando('Procesando…','Detectando documento y enderezando…');
+  setScanCargando('Procesando…','Preparando la foto de la factura…');
   var reader=new FileReader();
   reader.onload=function(e){
     var img=new Image();
     img.onload=function(){
-      // Escáner estilo iPhone: detecta bordes, recorta y endereza el documento
-      var scanP = window.CPDocScan ? CPDocScan.scan(img) : Promise.resolve({canvas:null,found:false});
+      // NO enderezar (a pedido): la detección de bordes RECORTABA la factura. Se guarda la FOTO COMPLETA;
+      // la IA usa la imagen full (jpegFull) y el PDF417 lee del original → no se pierde nada y nada se recorta.
+      var scanP = Promise.resolve({canvas:null,found:false});
       scanP.then(function(res){
-        var doc = (res && res.found && res.canvas) ? res.canvas : null;   // documento enderezado
+        var doc = (res && res.found && res.canvas) ? res.canvas : null;   // (enderezado deshabilitado)
         var baseW = doc ? doc.width : img.width, baseH = doc ? doc.height : img.height;
         // Reduce para peso del PDF
         var maxW=1280, scale=Math.min(1, maxW/baseW);
