@@ -880,11 +880,16 @@ function openSheetByIdx(el){ var i=parseInt(el&&el.getAttribute('data-eidx'),10)
 function cargarMisEntregas(){
   var box=document.getElementById('rEntregas'); if(!box || !window.CPAuth) return;
   var pf=(function(){try{return JSON.parse(localStorage.getItem('cp_perfil')||'{}');}catch(e){return {};}})();
-  var pat=pf.patente||'';
-  if(!pat){ box.innerHTML='<div style="color:var(--ink-faint);font-size:12px;padding:12px 0">Sin patente asignada. Pídele a planta que cargue tu ruta.</div>'; return; }
+  var pat=(pf.patente||'').trim(), nom=(pf.nombre||'').trim();
+  if(!pat && !nom){ box.innerHTML='<div style="color:var(--ink-faint);font-size:12px;padding:12px 0">Sin patente ni nombre asignado. Pídele a planta que cargue tu ruta.</div>'; return; }
   box.innerHTML='<div style="color:var(--ink-faint);font-size:12px;padding:12px 0">↻ Cargando entregas…</div>';
   var hoy=new Date().toISOString().slice(0,10);
-  fetch(CPAuth.SB_URL+'/rest/v1/entregas?patente=eq.'+encodeURIComponent(pat)+'&fecha=eq.'+hoy+'&order=orden.asc.nullslast&select=*',{headers:{apikey:CPAuth.ANON,Authorization:'Bearer '+CPAuth.ANON}})
+  // La ruta se asigna por PATENTE del camión; si planta la cargó por conductor, también calza por el NOMBRE del repartidor.
+  var conds=[];
+  if(pat) conds.push('patente.eq.'+encodeURIComponent(pat));
+  if(nom) conds.push('repartidor.ilike.*'+encodeURIComponent(nom)+'*');
+  var filtro=(conds.length>1)?('or=('+conds.join(',')+')'):(pat?('patente=eq.'+encodeURIComponent(pat)):('repartidor=ilike.*'+encodeURIComponent(nom)+'*'));
+  fetch(CPAuth.SB_URL+'/rest/v1/entregas?'+filtro+'&fecha=eq.'+hoy+'&order=orden.asc.nullslast&select=*',{headers:{apikey:CPAuth.ANON,Authorization:'Bearer '+CPAuth.ANON}})
   .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(es){ es=Array.isArray(es)?es:[];
     entregasPlanta=es; try{ renderMiDia(); }catch(e){} // cache + actualiza el panel "Mi día" con la ruta real
     var ent=es.filter(function(e){return e.estado==='entregada';}).length;
