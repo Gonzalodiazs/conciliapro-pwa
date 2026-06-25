@@ -176,6 +176,9 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
 .fullview-x:active{transform:scale(.9);background:var(--line)}
 .fullview-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 18px calc(88px + env(safe-area-inset-bottom))}
 .fullview-body>.card{margin:0}
+/* La factura no entregada se abre desde el escáner (z80) → debe ir por encima */
+#fallidaBg{z-index:82}
+#fallidaSheet{z-index:84}
 </style>
 </head>
 <body>
@@ -795,6 +798,7 @@ var _cpAttId=null, _cpAttPdf=null, _cpAttGen=0;
 function openCpAttachBtn(el){ if(el.disabled) return; openCpAttach(el.getAttribute('data-cid'), el.getAttribute('data-lbl')); }
 function openCpAttach(clientReqId, label){
   if(!clientReqId){ showToast('La factura aún se está sincronizando · espera señal'); return; }
+  closeAllSheets(); // exclusión mutua: solo un panel abierto a la vez (evita apilados)
   _cpAttId=clientReqId; _cpAttPdf=null; _cpAttGen++;
   var inf=document.getElementById('cpAttInfo'); if(inf) inf.textContent=label||'Respaldo de pago';
   ['cpAttMonto','cpAttFecha','cpAttRef','cpAttRut'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
@@ -852,6 +856,7 @@ var _corrId=null, _corrFp=null;
 function openCorrBtn(el){ if(!el) return; openCorr(el.getAttribute('data-cid'), el.getAttribute('data-fol'), el.getAttribute('data-fp'), el.getAttribute('data-mt')); }
 function openCorr(clientReqId, folio, fp, monto){
   if(!clientReqId){ showToast('La factura aún se sincroniza · espera señal'); return; }
+  closeAllSheets(); // exclusión mutua
   _corrId=clientReqId; _corrFp=(fp||'').toUpperCase();
   var inf=document.getElementById('corrInfo'); if(inf) inf.textContent='Factura '+(folio||'—');
   var btns=document.querySelectorAll('#corrBtns .pago'); for(var i=0;i<btns.length;i++){ btns[i].classList.toggle('on', btns[i].getAttribute('data-cp')===_corrFp); }
@@ -883,6 +888,7 @@ function guardarCorr(){
 var _cierreCtx=null, _cierreHas=false;
 function openCierre(){
   if(!window.CP||!CP.cuadreDia){ return; }
+  closeAllSheets(); // exclusión mutua
   renderCierreResumen();
   document.getElementById('cierreBg').classList.add('open'); document.getElementById('cierreSheet').classList.add('open');
   setTimeout(initCierreSig, 60); // dimensiona el canvas cuando el panel ya está visible
@@ -955,6 +961,7 @@ function generarRendicion(){
 var _fallidaMotivo=null;
 function openFallida(){
   if(!docPendiente){ showToast('Escanea la factura primero'); return; }
+  closeAllSheets(); // exclusión mutua
   _fallidaMotivo=null;
   var btns=document.querySelectorAll('#fallidaBtns .pago-sub'); for(var i=0;i<btns.length;i++) btns[i].classList.remove('on');
   var ot=document.getElementById('fallidaOtro'); if(ot){ ot.value=''; ot.style.display='none'; }
@@ -989,6 +996,7 @@ var DENOMS=[20000,10000,5000,2000,1000,500,100,50,10];
 // Desbloqueo: localStorage 'aiprotech_premium_arqueo'='1' (para demo/venta sin recompilar).
 function arqueoDesbloqueado(){ try{ return localStorage.getItem('aiprotech_premium_arqueo')==='1'; }catch(e){ return false; } }
 function openArqueo(){
+  closeAllSheets(); // exclusión mutua (no apilar sobre Cerrar el día)
   var locked=!arqueoDesbloqueado();
   var lock=document.getElementById('arqueoLock'), act=document.getElementById('arqueoActions');
   if(lock) lock.style.display=locked?'flex':'none';
