@@ -1,4 +1,4 @@
-/* ConciliaPro · Escáner de documentos estilo iPhone (jscanify + OpenCV.js, MIT, gratis).
+/* AIPROTECH · Escáner de documentos estilo iPhone (jscanify + OpenCV.js, MIT, gratis).
    Detecta los bordes del papel, recorta y endereza (corrección de perspectiva) → imagen lista para PDF.
    OpenCV se carga BAJO DEMANDA (la primera vez que se escanea), no en cada arranque. */
 (function () {

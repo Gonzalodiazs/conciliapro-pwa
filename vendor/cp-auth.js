@@ -1,4 +1,4 @@
-/* ConciliaPro · cp-auth.js (app repartidor) — autenticación por JWT (Edge Function cp-login).
+/* AIPROTECH · cp-auth.js (app repartidor) — autenticación por JWT (Edge Function cp-login).
    El conductor entra con su usuario + clave (patente). Guarda el JWT y lo usa cp-supabase.js. */
 (function () {
   var SB_URL = 'https://ekmkzaogpnnqcctcnqpr.supabase.co';

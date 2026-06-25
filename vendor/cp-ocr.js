@@ -1,4 +1,4 @@
-/* ConciliaPro · Lectura de timbre electrónico (PDF417) — 100% on-device, gratis.
+/* AIPROTECH · Lectura de timbre electrónico (PDF417) — 100% on-device, gratis.
    Decodifica el código PDF417 del timbre SII y extrae el TED (RUT, folio, fecha, monto).
    No requiere servidor ni OCR de pago: los datos vienen exactos del propio documento. */
 (function () {

@@ -1,4 +1,4 @@
-/* ConciliaPro · OCR OFFLINE (Nivel 3) — Tesseract.js empaquetado, funciona SIN internet.
+/* AIPROTECH · OCR OFFLINE (Nivel 3) — Tesseract.js empaquetado, funciona SIN internet.
    Todo local: worker, core WASM y español viajan dentro del APK (vendor/tess/).
    Devuelve el mismo formato que la IA (6 campos) extrayendo con regex del texto OCR.
    Es el respaldo de terreno: prellenado + confirmación manual. */

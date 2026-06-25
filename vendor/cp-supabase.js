@@ -1,4 +1,4 @@
-/* ConciliaPro · Conexión directa a Supabase (sin backend propio).
+/* AIPROTECH · Conexión directa a Supabase (sin backend propio).
    La app sube el PDF al Storage y guarda la factura en la tabla `documentos`.
    La anon key es pública (segura en el navegador) y está protegida por RLS. */
 (function () {

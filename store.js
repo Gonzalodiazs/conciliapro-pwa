@@ -1,5 +1,5 @@
 /* ============================================================================
-   RUFAI · Caché de datos local del WebView (clave cp_data_v6).
+   AIPROTECH · Caché de datos local del WebView (clave cp_data_v6).
    - Espejo offline de lo que cp-supabase.js sincroniza con Supabase (datos REALES).
    - Lo usan los módulos: repartidor, planta, portal, dashboard.
    - Sin datos demo: arranca vacío y se llena con la operación real.
