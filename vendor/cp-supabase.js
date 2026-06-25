@@ -52,7 +52,10 @@
         return r.text().then(function (t) {
           if (/PGRST204|schema cache|column/i.test(t || '')) {
             try { console.warn('[CP] columnas de comprobante de pago aún no existen; guardo la factura sin ese detalle. Ejecuta el ALTER TABLE de documentos.'); } catch (e) {}
-            var base = {}; Object.keys(row).forEach(function (k) { if (extraKeys.indexOf(k) < 0) base[k] = row[k]; });
+            // NUNCA descartar client_req_id (clave anti-duplicado): perderla haría que un reintento de la
+            // cola cree la factura dos veces e infle el efectivo a rendir. Solo se quitan las columnas de
+            // comprobante/pago que aún no existen en la BD.
+            var base = {}; Object.keys(row).forEach(function (k) { if (extraKeys.indexOf(k) < 0 || k === 'client_req_id') base[k] = row[k]; });
             return postFila(base, null);
           }
           throw new Error('insert 400');
@@ -282,11 +285,77 @@
     }, Promise.resolve()).then(function () { cqSet(q.filter(function (i) { return !i._done; })); return ok; });
   }
   function pendientesComprobantes() { return cqGet().length; }
+
+  // ── Incidencia del chofer → planta (tabla `incidencias`, anon INSERT-only, return=minimal) ──
+  // Antes la incidencia solo quedaba en localStorage del teléfono y NUNCA llegaba a la oficina.
+  // Ahora se sube de verdad, con cola offline propia (cp_cola_incidencias) e idempotencia por client_req_id.
+  function postIncidencia(row, extraKeys) {
+    return fetch(URL + '/rest/v1/incidencias', {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }, H()),
+      body: JSON.stringify(row)
+    }).then(function (r) {
+      if (r.ok) return { _ok: true };
+      if (r.status === 409) return { _idempotente: true }; // ya existe (reintento) → no duplicar
+      if (r.status === 400 && extraKeys && extraKeys.length) {
+        return r.text().then(function (t) {
+          if (/PGRST204|schema cache|column/i.test(t || '')) {
+            var base = {}; Object.keys(row).forEach(function (k) { if (extraKeys.indexOf(k) < 0 || k === 'client_req_id') base[k] = row[k]; });
+            return postIncidencia(base, null);
+          }
+          throw new Error('incidencia 400');
+        });
+      }
+      throw new Error('incidencia ' + r.status);
+    });
+  }
+  function insertIncidencia(inc) {
+    inc = inc || {};
+    var p = perfil();
+    var row = {
+      producto: inc.producto || '', cliente: inc.cliente || '', guia: inc.guia || '',
+      factura: inc.factura || '', tipo: inc.tipo || '', motivo: inc.motivo || '',
+      esperada: (inc.esperada != null && inc.esperada !== '') ? Number(inc.esperada) : null,
+      entregada: (inc.entregada != null && inc.entregada !== '') ? Number(inc.entregada) : null,
+      precio_unit: (inc.precioUnit != null && inc.precioUnit !== '') ? Number(inc.precioUnit) : null,
+      repartidor: inc.repartidor || p.nombre || '', patente: inc.patente || p.patente || '',
+      empresa_id: inc.empresaId || p.empresa_id || null, gps: inc.gps || null, estado: 'ABIERTA'
+    };
+    var extra = {};
+    if (inc.clientReqId) extra.client_req_id = String(inc.clientReqId);
+    var extraKeys = Object.keys(extra);
+    var full = extraKeys.length ? Object.assign({}, row, extra) : row;
+    return postIncidencia(full, extraKeys);
+  }
+  var IQKEY = 'cp_cola_incidencias';
+  function iqGet() { try { return JSON.parse(localStorage.getItem(IQKEY) || '[]'); } catch (e) { return []; } }
+  function iqSet(a) { try { localStorage.setItem(IQKEY, JSON.stringify(a)); return true; } catch (e) { return false; } }
+  function insertIncidenciaSegura(inc) {
+    return Promise.resolve().then(function () { return insertIncidencia(inc); }).catch(function (err) {
+      var msg = (err && err.message) ? String(err.message) : 'sin conexión';
+      var q = iqGet(); q.push({ inc: inc, t: new Date().getTime(), err: msg });
+      var saved = iqSet(q);
+      try { console.warn('[CP] incidencia encolada:', msg); } catch (e) {}
+      return { _encolado: true, pendientes: q.length, error: msg, _persistError: !saved };
+    });
+  }
+  function sincronizarIncidencias() {
+    var q = iqGet(); if (!q.length) return Promise.resolve(0); var ok = 0;
+    return q.reduce(function (p, item) {
+      return p.then(function () {
+        return Promise.resolve().then(function () { return insertIncidencia(item.inc); }).then(function () { ok++; item._done = true; })
+          .catch(function (e) { item.intentos = (item.intentos || 0) + 1; item.err = (e && e.message) || item.err; if (item.intentos >= 5) item._bloqueado = true; });
+      });
+    }, Promise.resolve()).then(function () { iqSet(q.filter(function (i) { return !i._done; })); return ok; });
+  }
+  function pendientesIncidencias() { return iqGet().length; }
+
   // auto-sincroniza al recuperar señal y al abrir la app (.catch evita "unhandled promise rejection").
   // Encadenado: primero suben los inserts, LUEGO los comprobantes (su PATCH necesita que la factura ya exista).
   function _sincronizarTodo() {
     try {
       sincronizarEntregas().catch(function () {});
+      sincronizarIncidencias().catch(function () {});
       return sincronizarCola().catch(function () { return {}; }).then(function () { return sincronizarComprobantes(); }).catch(function () { return 0; });
     } catch (e) { return Promise.resolve(0); }
   }
@@ -300,5 +369,7 @@
     corregirPagoRemoto: corregirPagoRemoto,
     sincronizarComprobantes: sincronizarComprobantes, pendientesComprobantes: pendientesComprobantes,
     sincronizarTodo: _sincronizarTodo,
-    cerrarEntrega: cerrarEntrega, sincronizarEntregas: sincronizarEntregas };
+    cerrarEntrega: cerrarEntrega, sincronizarEntregas: sincronizarEntregas,
+    insertIncidencia: insertIncidencia, insertIncidenciaSegura: insertIncidenciaSegura,
+    sincronizarIncidencias: sincronizarIncidencias, pendientesIncidencias: pendientesIncidencias };
 })();

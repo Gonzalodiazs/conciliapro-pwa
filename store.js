@@ -115,6 +115,16 @@
         estado: doc.estado || 'RECIBIDO_PLANTA',  // llega directo a planta
         ts: now()
       };
+      // Dedupe por clientReqId: si la cola reintenta el MISMO documento, NO lo dupliques en el cuadre
+      // (sumaría dos veces el efectivo a rendir y descuadraría la caja). Si ya existe, lo reemplaza.
+      if (n.clientReqId) {
+        for (var _qi = 0; _qi < data.documentos.length; _qi++) {
+          if (data.documentos[_qi].clientReqId && data.documentos[_qi].clientReqId === n.clientReqId) {
+            n.id = data.documentos[_qi].id; n.ts = data.documentos[_qi].ts || n.ts;
+            data.documentos[_qi] = n; persist(); return n;
+          }
+        }
+      }
       data.documentos.push(n); persist(); return n;
     },
     documentos: function () { return data.documentos.slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); }); },

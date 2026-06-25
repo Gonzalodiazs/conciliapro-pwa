@@ -1996,6 +1996,8 @@ function enviarIncidencia(){
     precioUnit: document.getElementById('incPrecioUnit').value,
     tipo: incTipo, motivo: document.getElementById('incMotivo').value
   };
+  // Idempotencia: si la cola reintenta, la incidencia NO se duplica en planta.
+  payload.clientReqId = 'inc-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
   closeInc();
   if(window.CP){
     var n = CP.addIncidencia(payload);
@@ -2003,6 +2005,8 @@ function enviarIncidencia(){
     if(n.montoNota>0){ msg += ' · nota de ' + (n.tipoNota==='COBRO'?'cobro':'crédito') + ' ' + CP.clp(n.montoNota); if(n.montoEstimado) msg += ' (estimado · planta confirma)'; }
     showToast(msg);
   } else showToast('✓ Incidencia guardada');
+  // Sube la incidencia DE VERDAD a la oficina (best-effort + cola offline). Antes solo quedaba en el teléfono.
+  try{ if(window.CPSupabase && CPSupabase.insertIncidenciaSegura) CPSupabase.insertIncidenciaSegura(payload); }catch(e){}
   ['incProducto','incCliente','incGuia','incFactura','incEsperada','incEntregada','incPrecioUnit','incMotivo'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
 }
 
