@@ -364,8 +364,9 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
       <!-- Comprobante de pago: foto del respaldo (transferencia / no-efectivo) + lectura IA -->
       <div id="cpagoBox" style="display:none;margin-bottom:10px">
         <div style="font-size:10px;color:var(--ink-faint);font-family:var(--mono);letter-spacing:.05em;margin-bottom:7px">COMPROBANTE DE PAGO · foto del respaldo (opcional)</div>
-        <div id="cpagoEmpty">
-          <button type="button" class="btn btn-ghost" style="width:100%;min-height:46px;font-size:12.5px" onclick="tomarComprobantePago()">📷 Adjuntar comprobante de pago</button>
+        <div id="cpagoEmpty" style="display:flex;gap:8px">
+          <button type="button" class="btn btn-ghost" style="flex:1;min-height:46px;font-size:12.5px" onclick="document.getElementById('camPagoGal').click()">🖼️ Galería</button>
+          <button type="button" class="btn btn-ghost" style="flex:1;min-height:46px;font-size:12.5px" onclick="tomarComprobantePago()">📷 Cámara</button>
         </div>
         <div id="cpagoData" style="display:none;background:var(--bg);border:1px solid var(--line-2);border-radius:12px;padding:11px">
           <div style="display:flex;gap:11px;align-items:flex-start">
@@ -407,7 +408,10 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
     </div>
     <input type="file" accept="image/*" capture="environment" id="camInput" style="display:none">
     <input type="file" accept="image/*" capture="environment" id="camPago" style="display:none">
+    <!-- Galería (SIN capture): el comprobante de transferencia suele estar ya como captura de pantalla en el teléfono -->
+    <input type="file" accept="image/*" id="camPagoGal" style="display:none" onchange="if(this.files&&this.files[0]){procesarComprobantePago(this.files[0]);} this.value='';">
     <input type="file" accept="image/*" capture="environment" id="camPagoAtt" style="display:none" onchange="if(this.files&&this.files[0]){procesarCpAttach(this.files[0]);} this.value='';">
+    <input type="file" accept="image/*" id="camPagoAttGal" style="display:none" onchange="if(this.files&&this.files[0]){procesarCpAttach(this.files[0]);} this.value='';">
   </div>
   <!-- Sheet firma -->
   <div class="sheet-bg" id="sheetBg" onclick="closeSheet()"></div>
@@ -532,8 +536,9 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
     <div class="handle"></div>
     <h2>Adjuntar comprobante</h2>
     <div class="sub" id="cpAttInfo">Respaldo de pago de la factura</div>
-    <div id="cpAttEmpty">
-      <button class="btn btn-ghost" style="width:100%;min-height:48px;font-size:12.5px" onclick="document.getElementById('camPagoAtt').click()">📷 Tomar foto del comprobante</button>
+    <div id="cpAttEmpty" style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1;min-height:48px;font-size:12.5px" onclick="document.getElementById('camPagoAttGal').click()">🖼️ Galería</button>
+      <button class="btn btn-ghost" style="flex:1;min-height:48px;font-size:12.5px" onclick="document.getElementById('camPagoAtt').click()">📷 Cámara</button>
     </div>
     <div id="cpAttData" style="display:none;background:var(--bg);border:1px solid var(--line-2);border-radius:12px;padding:11px;margin-top:4px">
       <div style="display:flex;gap:11px;align-items:flex-start">
