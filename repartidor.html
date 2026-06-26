@@ -606,7 +606,7 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
       <span id="cierreAlTxt">—</span>
     </div>
     <div id="cierreResumen" style="background:var(--bg);border:1px solid var(--line-2);border-radius:12px;padding:12px;margin-bottom:12px"></div>
-    <button class="btn btn-ghost" style="width:100%;min-height:46px;font-size:12.5px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px" onclick="openArqueo()"><span style="font-size:15px">🔒</span> Arqueo de caja <span style="font-family:var(--mono);font-size:8.5px;font-weight:700;background:rgba(91,85,192,.14);color:var(--violet);padding:2px 7px;border-radius:20px;letter-spacing:.05em">PREMIUM</span></button>
+    <button class="btn btn-ghost" style="width:100%;min-height:46px;font-size:12.5px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px" onclick="openArqueo()"><span style="font-size:15px">💰</span> Arqueo de caja</button>
     <div style="font-size:10.5px;color:var(--ink-faint);font-family:var(--mono);letter-spacing:.06em;margin-bottom:6px">FIRMA DEL RESPONSABLE (opcional)</div>
     <canvas id="cierreSig" style="width:100%;height:140px;background:var(--bg);border:1px dashed var(--line-2);border-radius:14px;touch-action:none;display:block"></canvas>
     <button class="mini-btn" style="margin-top:7px" onclick="clearCierreSig()">Borrar firma</button>
@@ -1024,7 +1024,7 @@ function confirmarFallida(){
 // ───────── Arqueo de caja (PREMIUM · propuesta de valor; bloqueado por defecto con candado) ─────────
 var DENOMS=[20000,10000,5000,2000,1000,500,100,50,10];
 // Desbloqueo: localStorage 'aiprotech_premium_arqueo'='1' (para demo/venta sin recompilar).
-function arqueoDesbloqueado(){ try{ return localStorage.getItem('aiprotech_premium_arqueo')==='1'; }catch(e){ return false; } }
+function arqueoDesbloqueado(){ return true; } // Liberado: el arqueo de caja queda disponible para todos los choferes.
 function openArqueo(){
   closeAllSheets(); // exclusión mutua (no apilar sobre Cerrar el día)
   var locked=!arqueoDesbloqueado();
@@ -1819,18 +1819,23 @@ function renderScan(d){
 // ── Exportar a Excel los documentos escaneados (SheetJS, 100% on-device) ──
 function exportarExcel(){
   if(!window.XLSX){ showToast('Excel no disponible'); return; }
-  var docs = window.CP ? CP.documentos() : [];
-  if(!docs.length){ showToast('No hay documentos para exportar'); return; }
+  // Solo los documentos de HOY (mismo corte que el cuadre en pantalla) → el Excel COINCIDE con lo que ves.
+  // Antes exportaba TODO el historial local, por eso aparecían facturas de días anteriores que no estaban en la vista.
+  var _hoy=new Date(); _hoy.setHours(0,0,0,0); var _t0=_hoy.getTime();
+  var docs = (window.CP ? CP.documentos() : []).filter(function(d){ return (d.ts||0) >= _t0; });
+  if(!docs.length){ showToast('No hay documentos de hoy para exportar'); return; }
   var rows = docs.map(function(d){
+    var fallida = (d.estado||'')==='FALLIDA';
     return {
       'Fecha': d.fecha || '',
       'Folio': d.folio || '',
+      'Estado': fallida ? ('NO ENTREGADA'+(d.motivoFallida?(' · '+d.motivoFallida):'')) : 'Vendida',
       'Código Cliente': d.codigoCliente || '',
       'Código Transporte': d.codigoTransporte || '',
       'Orden de Compra': d.ordenCompra || '',
-      'Valor sin IVA': Number(d.valorSinIva) || 0,
-      'Valor con IVA': Number(d.valorConIva) || Number(d.monto) || 0,
-      'Forma de Pago': d.formaPago || '',
+      'Valor sin IVA': fallida ? 0 : (Number(d.valorSinIva) || 0),
+      'Valor con IVA': fallida ? 0 : (Number(d.valorConIva) || Number(d.monto) || 0),
+      'Forma de Pago': fallida ? '' : (d.formaPago || ''),
       'Tipo': d.dteNombre || d.tipo || '',
       'RUT Emisor': d.rut || '',
       'RUT Receptor': d.rutReceptor || '',
@@ -1839,9 +1844,9 @@ function exportarExcel(){
   });
   var totC = rows.reduce(function(s,r){ return s + (r['Valor con IVA']||0); }, 0);
   var totN = rows.reduce(function(s,r){ return s + (r['Valor sin IVA']||0); }, 0);
-  rows.push({ 'Fecha':'', 'Folio':'', 'Código Cliente':'', 'Código Transporte':'', 'Orden de Compra':'TOTAL', 'Valor sin IVA':totN, 'Valor con IVA':totC, 'Forma de Pago':'', 'Tipo':'', 'RUT Emisor':'', 'RUT Receptor':'', 'Repartidor':'' });
+  rows.push({ 'Fecha':'', 'Folio':'', 'Estado':'', 'Código Cliente':'', 'Código Transporte':'', 'Orden de Compra':'TOTAL', 'Valor sin IVA':totN, 'Valor con IVA':totC, 'Forma de Pago':'', 'Tipo':'', 'RUT Emisor':'', 'RUT Receptor':'', 'Repartidor':'' });
   var ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{wch:11},{wch:12},{wch:15},{wch:16},{wch:14},{wch:13},{wch:13},{wch:14},{wch:20},{wch:14},{wch:14},{wch:16}];
+  ws['!cols'] = [{wch:11},{wch:12},{wch:20},{wch:15},{wch:16},{wch:14},{wch:13},{wch:13},{wch:14},{wch:20},{wch:14},{wch:14},{wch:16}];
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Documentos');
   var fname = 'documentos-' + new Date().toISOString().slice(0,10) + '.xlsx';
