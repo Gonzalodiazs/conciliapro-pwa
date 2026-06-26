@@ -183,11 +183,14 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
 </head>
 <body>
 <div class="phone"><div class="screen">
-  <div class="statusbar"><span id="mclock">9:41</span><a href="javascript:void 0" onclick="CPAuth.logout()" style="color:var(--blue);text-decoration:none;font-weight:600">Salir ⏻</a></div>
+  <div class="statusbar"><span id="mclock"></span><a href="javascript:void 0" onclick="CPAuth.logout()" style="color:var(--blue);text-decoration:none;font-weight:600">Salir ⏻</a></div>
   <div class="app-head">
-    <div class="greet">Buenos días,</div>
+    <div class="greet" id="saludo">Hola,</div>
     <h1 id="condNombre">Conductor</h1>
-    <script>try{var _p=JSON.parse(localStorage.getItem('cp_perfil')||'{}');if(_p&&_p.nombre)document.getElementById('condNombre').textContent=_p.nombre;}catch(e){}</script>
+    <script>try{var _p=JSON.parse(localStorage.getItem('cp_perfil')||'{}');if(_p&&_p.nombre)document.getElementById('condNombre').textContent=_p.nombre;
+      var _hh=new Date().getHours(),_sa=document.getElementById('saludo'); if(_sa)_sa.textContent=(_hh<12?'Buenos días,':(_hh<20?'Buenas tardes,':'Buenas noches,'));
+      var _mc=document.getElementById('mclock'); if(_mc)_mc.textContent=new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit',hour12:false});
+    }catch(e){}</script>
     <span class="route-chip" id="routeChip"><span class="dot"></span>EN RUTA</span>
   </div>
   <div class="body" id="homeBody">
@@ -1276,6 +1279,8 @@ function processToastQueue(){
   if(!t || !toastQueue.length){ toastBusy=false; return; }
   toastBusy=true;
   var it=toastQueue.shift();
+  // Vibración háptica: pulso corto al confirmar (ok), patrón doble en aviso/error → el chofer "siente" el resultado sin mirar.
+  try{ if(navigator.vibrate){ navigator.vibrate(it.tipo==='ok' ? 35 : [70,55,70]); } }catch(e){}
   t.textContent=it.msg;
   t.classList.remove('t-warn','t-err');
   if(it.tipo==='warn') t.classList.add('t-warn'); else if(it.tipo==='err') t.classList.add('t-err');
@@ -1583,7 +1588,7 @@ function actualizarSubpagos(){
 // Genera un input de monto por cada método marcado en el pago mixto (conserva lo ya escrito).
 function renderMixtoMontos(){
   var cont=document.getElementById('mixtoMontos'); if(!cont) return;
-  var nombres={EFECTIVO:'Efectivo',DEBITO:'Débito',CREDITO:'Crédito',CHEQUE:'Cheque',TRANSFERENCIA:'Transferencia'};
+  var nombres={EFECTIVO:'Efectivo',DEBITO:'Débito',CREDITO:'Crédito',CHEQUE:'Cheque',TRANSFERENCIA:'Transferencia',GETNET:'Getnet'};
   var prev={}; Array.prototype.forEach.call(cont.querySelectorAll('input[data-mm]'), function(i){ prev[i.getAttribute('data-mm')]=(i.value||'').replace(/[^0-9]/g,''); });
   cont.innerHTML = mixtoComps.map(function(m){
     return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="flex:0 0 96px;font-size:11.5px;color:var(--ink-dim)">'+(nombres[m]||m)+'</span><input data-mm="'+m+'" inputmode="numeric" placeholder="Monto $" class="minp" style="flex:1" oninput="resumenMixto()" value="'+(prev[m]||'')+'"></div>';
