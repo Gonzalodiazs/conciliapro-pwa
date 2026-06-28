@@ -19,12 +19,22 @@
     return new Blob([a], { type: 'application/pdf' });
   }
 
-  function uploadPDF(dataUrl, prefix) {
+  // Sanea un texto para usarlo en el nombre del archivo (solo alfanumérico, sin acentos/espacios).
+  function sanFile(s) { return String(s == null ? '' : s).replace(/[^0-9A-Za-z]/g, '').slice(0, 40); }
+  // Sube un PDF al Storage. El nombre del OBJETO usa el FOLIO de la factura (requisito: folio como nombre
+  // de archivo), con la patente y un sufijo corto único para evitar colisiones / sobre-escritura. Si no hay
+  // folio (p. ej. comprobante suelto), cae al nombre antiguo timestamp+random.
+  function uploadPDF(dataUrl, prefix, folio, patente) {
     if (!dataUrl) return Promise.resolve(null);
     // dataURL corrupto/truncado (p. ej. leído de un localStorage lleno) → atob lanza SÍNCRONO.
     // Lo atrapamos para NO romper el envío de la factura: si el PDF falla, la fila se guarda igual sin él.
     var blob; try { blob = dataUrlToBlob(dataUrl); } catch (e) { return Promise.resolve(null); }
-    var name = (prefix || 'dte') + '-' + new Date().getTime() + '-' + Math.floor(Math.random() * 1e6) + '.pdf';
+    var pfx = prefix || 'dte';
+    var folioSan = sanFile(folio), patSan = sanFile(patente);
+    var uniq = new Date().getTime().toString(36) + Math.floor(Math.random() * 1296).toString(36);
+    var name = folioSan
+      ? (pfx + '-FA' + folioSan + (patSan ? ('__' + patSan) : '') + '-' + uniq + '.pdf')
+      : (pfx + '-' + new Date().getTime() + '-' + Math.floor(Math.random() * 1e6) + '.pdf');
     return fetch(URL + '/storage/v1/object/comprobantes/' + name, {
       method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/pdf' }, H()),
@@ -67,7 +77,8 @@
 
   // Inserta una factura. Sube el PDF de la factura y (si hay) el del comprobante de pago, luego guarda la fila.
   function insertDoc(doc) {
-    return Promise.all([uploadPDF(doc.pdf, 'dte'), uploadPDF(doc.comprobantePagoPdf, 'pago')]).then(function (urls) {
+    var _pat = doc.patente || perfil().patente; // folio + patente → nombre de archivo en Storage (R9)
+    return Promise.all([uploadPDF(doc.pdf, 'dte', doc.folio, _pat), uploadPDF(doc.comprobantePagoPdf, 'pago', doc.folio, _pat)]).then(function (urls) {
       var pdf_url = urls[0], pago_url = urls[1];
       var row = {
         folio: doc.folio || '', dte_tipo: doc.dteTipo || '', dte_nombre: doc.dteNombre || doc.tipo || 'Documento',
@@ -105,11 +116,14 @@
       .then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
   }
 
-  // IA de visión: manda la foto a la Edge Function (que llama a Gemini) y devuelve los datos
-  function extraerFactura(imageBase64) {
+  // IA de visión: manda la foto a la Edge Function (que llama a Gemini) y devuelve los datos.
+  // modo opcional: 'comprobante' (lee monto transferido de un comprobante bancario) o 'fraude'; sin modo = factura SII.
+  function extraerFactura(imageBase64, modo) {
+    var payload = { image: imageBase64 };
+    if (modo) payload.modo = modo;
     return fetch(URL + '/functions/v1/extraer-factura', {
       method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, H()),
-      body: JSON.stringify({ image: imageBase64 })
+      body: JSON.stringify(payload)
     }).then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) { return (j && j.ok) ? j.data : null; })
       .catch(function () { return null; });
@@ -208,7 +222,7 @@
   function attachComprobante(clientReqId, info) {
     info = info || {};
     if (!clientReqId) return Promise.reject(new Error('comprobante sin id'));
-    return uploadPDF(info.pdf, 'pago').then(function (url) {
+    return uploadPDF(info.pdf, 'pago', info.folio, info.patente).then(function (url) {
       var patch = {
         comprobante_pago_url: url || null,
         pago_monto: (info.monto != null && info.monto !== '') ? Number(info.monto) : null,

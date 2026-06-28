@@ -345,9 +345,10 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
       <div id="pagoBtns" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px">
         <button class="pago" data-pago="EFECTIVO" onclick="selPago(this)">💵 Efectivo</button>
         <button class="pago" data-pago="DEBITO" onclick="selPago(this)">💳 Débito</button>
-        <button class="pago" data-pago="CREDITO" onclick="selPago(this)">💳 Crédito</button>
+        <button class="pago" data-pago="CREDITO" onclick="selPago(this)">💳 Crédito (FP30)</button>
         <button class="pago" data-pago="CHEQUE" onclick="selPago(this)">🧾 Cheque</button>
         <button class="pago" data-pago="TRANSFERENCIA" onclick="selPago(this)">🏦 Transferencia</button>
+        <button class="pago" data-pago="DEPOSITO" onclick="selPago(this)">🏧 Depósito caja vecina</button>
         <button class="pago" data-pago="GETNET" onclick="selPago(this)">💳 Getnet</button>
         <button class="pago" data-pago="MIXTO" onclick="selPago(this)">🔀 Mixto</button>
       </div>
@@ -357,9 +358,10 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
         <div style="display:flex;flex-wrap:wrap;gap:6px">
           <button class="pago-sub" data-mc="EFECTIVO" onclick="toggleMixtoComp(this)">Efectivo</button>
           <button class="pago-sub" data-mc="DEBITO" onclick="toggleMixtoComp(this)">Débito</button>
-          <button class="pago-sub" data-mc="CREDITO" onclick="toggleMixtoComp(this)">Crédito</button>
+          <button class="pago-sub" data-mc="CREDITO" onclick="toggleMixtoComp(this)">Crédito (FP30)</button>
           <button class="pago-sub" data-mc="CHEQUE" onclick="toggleMixtoComp(this)">Cheque</button>
           <button class="pago-sub" data-mc="TRANSFERENCIA" onclick="toggleMixtoComp(this)">Transferencia</button>
+          <button class="pago-sub" data-mc="DEPOSITO" onclick="toggleMixtoComp(this)">Depósito</button>
           <button class="pago-sub" data-mc="GETNET" onclick="toggleMixtoComp(this)">Getnet</button>
         </div>
         <!-- Monto pagado con cada método (se genera según lo que marques) -->
@@ -402,7 +404,7 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
       <!-- Validación de recepción: la factura física trae timbre del proveedor + firma del cliente -->
       <label id="visadaTog" onclick="toggleVisada()" style="display:flex;align-items:center;gap:9px;background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:11px;margin-bottom:9px;cursor:pointer;font-size:12.5px;min-height:44px;box-sizing:border-box">
         <span id="vtBox" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--line-2);display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:transparent;flex-shrink:0">✓</span>
-        <span>Factura <b>visada</b> · timbre + firma del cliente <span id="vtIA" style="font-family:var(--mono);font-size:9px;color:var(--ink-faint)"></span></span>
+        <span>Factura <b>visada</b> · timbre, firma o "recepción conforme" <span id="vtIA" style="font-family:var(--mono);font-size:9px;color:var(--ink-faint)"></span></span>
       </label>
       <input id="pagoFirmante" placeholder="Nombre de quien recibe / firma" style="width:100%;background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:12px;min-height:44px;color:var(--ink);font-family:var(--sans);font-size:13px;outline:none;box-sizing:border-box">
       <div style="display:flex;gap:8px;margin-top:10px">
@@ -584,9 +586,10 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
     <div id="corrBtns" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">
       <button class="pago" data-cp="EFECTIVO" onclick="selCorr(this)">💵 Efectivo</button>
       <button class="pago" data-cp="DEBITO" onclick="selCorr(this)">💳 Débito</button>
-      <button class="pago" data-cp="CREDITO" onclick="selCorr(this)">💳 Crédito</button>
+      <button class="pago" data-cp="CREDITO" onclick="selCorr(this)">💳 Crédito (FP30)</button>
       <button class="pago" data-cp="CHEQUE" onclick="selCorr(this)">🧾 Cheque</button>
       <button class="pago" data-cp="TRANSFERENCIA" onclick="selCorr(this)">🏦 Transferencia</button>
+      <button class="pago" data-cp="DEPOSITO" onclick="selCorr(this)">🏧 Depósito caja vecina</button>
       <button class="pago" data-cp="GETNET" onclick="selCorr(this)">💳 Getnet</button>
     </div>
     <div style="font-size:10.5px;color:var(--ink-faint);font-family:var(--mono);letter-spacing:.06em;margin-bottom:6px">MONTO DE LA FACTURA</div>
@@ -607,6 +610,7 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M10.3 3.9a2 2 0 013.4 0l8 13.4a2 2 0 01-1.7 3H4a2 2 0 01-1.7-3z"/><path d="M12 9v4M12 17h.01"/></svg>
       <span id="cierreAlTxt">—</span>
     </div>
+    <div id="preliqBox" style="display:none;background:var(--bg);border:1px solid var(--line-2);border-radius:12px;padding:12px;margin-bottom:12px"></div>
     <div id="cierreResumen" style="background:var(--bg);border:1px solid var(--line-2);border-radius:12px;padding:12px;margin-bottom:12px"></div>
     <button class="btn btn-ghost" style="width:100%;min-height:46px;font-size:12.5px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px" onclick="openArqueo()"><span style="font-size:15px">💰</span> Arqueo de caja</button>
     <div style="font-size:10.5px;color:var(--ink-faint);font-family:var(--mono);letter-spacing:.06em;margin-bottom:6px">FIRMA DEL RESPONSABLE (opcional)</div>
@@ -614,7 +618,11 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
     <button class="mini-btn" style="margin-top:7px" onclick="clearCierreSig()">Borrar firma</button>
     <div class="btn-row" style="margin-top:12px">
       <button class="btn btn-ghost" onclick="closeCierre()">Cerrar</button>
-      <button class="btn btn-primary" onclick="generarRendicion()">Generar resumen (PDF) ✓</button>
+      <button class="btn btn-primary" onclick="generarRendicion()">Descargar PDF ✓</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-ghost" style="flex:1;min-height:44px;font-size:12.5px" onclick="imprimirRendicion()">🖨 Imprimir</button>
+      <button class="btn btn-ghost" style="flex:1;min-height:44px;font-size:12.5px;color:#1E7F54;border-color:rgba(30,127,84,.4)" onclick="whatsappRendicion()">🟢 WhatsApp</button>
     </div>
   </div>
   <!-- Sheet: factura NO entregada (rechazo / otro motivo del rubro) -->
@@ -824,10 +832,10 @@ function procesarCpAttach(file){
       var dt=document.getElementById('cpAttData'); if(dt) dt.style.display='block';
       if(est){ est.textContent='Leyendo con IA…'; est.style.color='var(--amber)'; }
       if(navigator.onLine===false){ if(est){ est.textContent='Sin internet · ingresa los datos a mano'; est.style.color='var(--amber)'; } return; }
-      var aiP=(window.CPSupabase&&CPSupabase.extraerFactura)?CPSupabase.extraerFactura(jpegFull.split(',')[1]):Promise.resolve(null);
+      var aiP=(window.CPSupabase&&CPSupabase.extraerFactura)?CPSupabase.extraerFactura(jpegFull.split(',')[1],'comprobante'):Promise.resolve(null);
       aiP.then(function(ai){ if(miGen!==_cpAttGen) return;
-        if(ai){ var m=Number(ai.valorConIva)||Number(ai.monto)||Number(ai.valorSinIva)||0; var setIf=function(id,val){ var el=document.getElementById(id); if(el&&!el.value&&val) el.value=val; };
-          if(m) setIf('cpAttMonto', m); setIf('cpAttFecha', ai.fecha); setIf('cpAttRef', (ai.folio!=null?String(ai.folio):'')); setIf('cpAttRut', ai.rutEmisor);
+        if(ai){ var m=Number(ai.monto)||Number(ai.valorConIva)||Number(ai.valorSinIva)||0; var setIf=function(id,val){ var el=document.getElementById(id); if(el&&!el.value&&val) el.value=val; };
+          if(m) setIf('cpAttMonto', m); setIf('cpAttFecha', ai.fecha); setIf('cpAttRef', (ai.operacion!=null&&ai.operacion!==''?String(ai.operacion):(ai.folio!=null?String(ai.folio):''))); setIf('cpAttRut', ai.rutOrigen||ai.rutEmisor);
           if(est){ est.textContent='✓ leído por IA · verifica los datos'; est.style.color='var(--green)'; } }
         else if(est){ est.textContent='No se pudo leer · ingrésalo a mano'; est.style.color='var(--amber)'; }
       });
@@ -841,7 +849,10 @@ function guardarCpAttach(){
   if(!_cpAttId){ closeCpAttach(); return; }
   if(!_cpAttPdf){ showToast('Toma la foto del comprobante'); return; }
   var g=function(id){ var e=document.getElementById(id); return e?(e.value||''):''; };
-  var info={ pdf:_cpAttPdf, monto: parseInt(g('cpAttMonto').replace(/\D/g,''),10)||null, fecha:g('cpAttFecha').trim(), ref:g('cpAttRef').trim(), rutOrigen:g('cpAttRut').trim() };
+  // Folio + patente de la factura → para nombrar el comprobante en Storage con el folio (R9)
+  var _d=null; try{ _d=(window.CP&&CP.documentos?CP.documentos():[]).filter(function(x){return x.clientReqId===_cpAttId;})[0]||null; }catch(e){}
+  var _pf=(function(){try{return JSON.parse(localStorage.getItem('cp_perfil')||'{}');}catch(e){return {};}})();
+  var info={ pdf:_cpAttPdf, folio:(_d&&_d.folio)||'', patente:(_d&&_d.patente)||_pf.patente||'', monto: parseInt(g('cpAttMonto').replace(/\D/g,''),10)||null, fecha:g('cpAttFecha').trim(), ref:g('cpAttRef').trim(), rutOrigen:g('cpAttRut').trim() };
   var id=_cpAttId, btn=document.getElementById('btnCpAtt'); if(btn){ btn.disabled=true; btn.textContent='Guardando…'; }
   try{ if(window.CP&&CP.actualizarComprobante) CP.actualizarComprobante(id, info); }catch(e){} // marca local (optimista)
   var p=(window.CPSupabase&&CPSupabase.attachComprobanteSeguro)?CPSupabase.attachComprobanteSeguro(id, info):Promise.resolve({_ok:true});
@@ -891,11 +902,78 @@ var _cierreCtx=null, _cierreHas=false;
 function openCierre(){
   if(!window.CP||!CP.cuadreDia){ return; }
   closeAllSheets(); // exclusión mutua
+  try{ renderPreliquidacion(); }catch(e){} // preliquidación ruta-vs-rendido (si planta cargó la ruta)
   renderCierreResumen();
   document.getElementById('cierreBg').classList.add('open'); document.getElementById('cierreSheet').classList.add('open');
   setTimeout(initCierreSig, 60); // dimensiona el canvas cuando el panel ya está visible
 }
 function closeCierre(){ var b=document.getElementById('cierreBg'),s=document.getElementById('cierreSheet'); if(b)b.classList.remove('open'); if(s)s.classList.remove('open'); }
+// ── PRELIQUIDACIÓN ruta-vs-retorno: cruza las facturas que planta SACÓ a ruta (entregasPlanta)
+//    contra lo que el chofer rindió hoy (escaneado), y marca CUADRADA / DIFERENCIA / SIN_RENDIR por factura. ──
+function _normFolio(f){ return String(f==null?'':f).replace(/[^0-9A-Za-z]/g,'').replace(/^0+/,'').toUpperCase(); }
+function preliquidacion(){
+  var ruta=(typeof entregasPlanta!=='undefined'&&Array.isArray(entregasPlanta))?entregasPlanta:[];
+  var cq=(window.CP&&CP.cuadreDia)?CP.cuadreDia():{docs:[],fallidas:[]};
+  // Índice de lo escaneado HOY por folio (vendidas tienen prioridad sobre fallidas)
+  var scan={};
+  (cq.fallidas||[]).forEach(function(d){ var f=_normFolio(d.folio); if(f) scan[f]={doc:d,tipo:'fallida'}; });
+  (cq.docs||[]).forEach(function(d){ var f=_normFolio(d.folio); if(f) scan[f]={doc:d,tipo:'vendida'}; });
+  var items=[], usados={}, tDespachado=0, tRendido=0, tDif=0, nCuadradas=0, nDiferencia=0, nSinRendir=0, nNoEntregada=0;
+  ruta.forEach(function(e){
+    var f=_normFolio(e.folio), esperado=Number(e.monto)||0; tDespachado+=esperado;
+    var m=f?scan[f]:null; if(f) usados[f]=true;
+    var it={ folio:e.folio||'—', cliente:e.cliente||e.codigo_cliente||'—', esperado:esperado, condicion:e.condicion_pago||'' };
+    if(!m){ it.estado='SIN_RENDIR'; it.retorno=0; it.dif=esperado; tDif+=esperado; nSinRendir++; }
+    else if(m.tipo==='fallida'){ it.estado='NO_ENTREGADA'; it.retorno=0; it.dif=0; it.motivo=(m.doc.motivo||m.doc.motivoFallida||''); nNoEntregada++; }
+    else { var ret=Number(m.doc.valorConIva)||Number(m.doc.monto)||0; it.retorno=ret; it.formaPago=m.doc.formaPago||'';
+      var dif=esperado?(esperado-ret):0; it.dif=dif; tRendido+=ret;
+      if(esperado && Math.abs(dif)>=1){ it.estado='DIFERENCIA'; nDiferencia++; tDif+=dif; }
+      else { it.estado='CUADRADA'; nCuadradas++; }
+    }
+    items.push(it);
+  });
+  // Facturas escaneadas que NO estaban en la ruta (extras / fuera de ruta)
+  var extras=[];
+  Object.keys(scan).forEach(function(f){ if(usados[f]||scan[f].tipo!=='vendida') return; var d=scan[f].doc;
+    var ret=Number(d.valorConIva)||Number(d.monto)||0; extras.push({ folio:d.folio||'—', cliente:d.cliente||d.razonReceptor||'—', retorno:ret }); tRendido+=ret;
+  });
+  // Orden: primero las problemáticas (diferencia/sin rendir) para que salten a la vista
+  var rank={DIFERENCIA:0,SIN_RENDIR:1,NO_ENTREGADA:2,CUADRADA:3};
+  items.sort(function(a,b){ return (rank[a.estado]-rank[b.estado]); });
+  return { items:items, extras:extras, rutaN:ruta.length, tDespachado:tDespachado, tRendido:tRendido, tDif:tDif,
+    nCuadradas:nCuadradas, nDiferencia:nDiferencia, nSinRendir:nSinRendir, nNoEntregada:nNoEntregada, nExtras:extras.length,
+    cuadradoTotal:(nDiferencia===0 && nSinRendir===0) };
+}
+function _plRow(k,v,col){ return '<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="color:var(--ink-dim)">'+k+'</span><span style="font-family:var(--mono)'+(col?(';color:'+col+';font-weight:700'):'')+'">'+v+'</span></div>'; }
+function renderPreliquidacion(){
+  var box=document.getElementById('preliqBox'); if(!box) return;
+  var p=preliquidacion();
+  if(!p.rutaN){ box.style.display='none'; return; } // planta no cargó ruta → no hay con qué cuadrar
+  box.style.display='block';
+  var clp=window.CP?CP.clp:function(n){return '$'+(Number(n)||0);};
+  var head='<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><span style="font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:.08em">PRELIQUIDACIÓN · RUTA VS RENDIDO</span>'
+    +'<span style="margin-left:auto;font-size:11px;font-weight:800;color:'+(p.cuadradoTotal?'var(--green)':'var(--red)')+'">'+(p.cuadradoTotal?'✓ CUADRADO':'⚠ CON DIFERENCIAS')+'</span></div>';
+  var res='<div style="font-size:12.5px;margin-bottom:8px">'
+    +_plRow('Facturas en ruta', p.rutaN)
+    +_plRow('Despachado', clp(p.tDespachado))
+    +_plRow('Rendido', clp(p.tRendido))
+    +(p.nCuadradas?_plRow('✓ Cuadradas', p.nCuadradas,'var(--green)'):'')
+    +(p.nDiferencia?_plRow('⚠ Con diferencia', p.nDiferencia,'var(--red)'):'')
+    +(p.nSinRendir?_plRow('• Sin rendir', p.nSinRendir+' · '+clp(p.tDif),'var(--amber)'):'')
+    +(p.nNoEntregada?_plRow('🚫 No entregadas', p.nNoEntregada):'')
+    +(p.nExtras?_plRow('+ Fuera de ruta', p.nExtras):'')
+    +'</div>';
+  var col={CUADRADA:'var(--green)',DIFERENCIA:'var(--red)',SIN_RENDIR:'var(--amber)',NO_ENTREGADA:'var(--ink-faint)'};
+  var lbl=function(it){ return {CUADRADA:'✓',DIFERENCIA:'dif '+clp(it.dif),SIN_RENDIR:'sin rendir',NO_ENTREGADA:'no entreg.'}[it.estado]||it.estado; };
+  var det=p.items.map(function(it){
+    return '<div style="display:flex;justify-content:space-between;gap:6px;padding:4px 0;border-top:1px solid var(--line);font-size:11.5px">'
+      +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escEnt(it.folio)+' · '+escEnt(it.cliente)+'</span>'
+      +'<span style="font-family:var(--mono);flex-shrink:0">'+clp(it.esperado)+'</span>'
+      +'<span style="color:'+(col[it.estado]||'var(--ink-dim)')+';flex-shrink:0;min-width:64px;text-align:right;font-weight:600">'+lbl(it)+'</span></div>';
+  }).join('');
+  var detWrap='<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;color:var(--blue);font-family:var(--mono)">Ver detalle por factura ('+p.items.length+')</summary><div style="margin-top:4px">'+det+'</div></details>';
+  box.innerHTML=head+res+detWrap;
+}
 function renderCierreResumen(){
   var c=CP.cuadreDia();
   var box=document.getElementById('cierreResumen'); if(!box) return;
@@ -958,7 +1036,7 @@ function rendicionPdf(c, firmaData, nombre, patente){
     doc.setFontSize(15); doc.text('RESUMEN DE RENDICION DEL DIA',40,46);
     doc.setDrawColor(190); doc.line(40,56,380,56);
     doc.setFontSize(10.5); var y=80;
-    function L(t,bold){ if(bold)doc.setFont(undefined,'bold'); doc.text(String(t),40,y); if(bold)doc.setFont(undefined,'normal'); y+=18; }
+    function L(t,bold){ if(y>560){ doc.addPage(); y=50; } if(bold)doc.setFont(undefined,'bold'); doc.text(String(t),40,y); if(bold)doc.setFont(undefined,'normal'); y+=18; }
     L('Repartidor: '+(nombre||'-')+(patente?('   ·   '+patente):''));
     L('Fecha: '+new Date().toLocaleString('es-CL'));
     L('Facturas del dia: '+c.n+'   ·   Facturado: '+CP.clp(c.totalFacturado));
@@ -971,23 +1049,71 @@ function rendicionPdf(c, firmaData, nombre, patente){
     doc.line(40,y-6,380,y-6); y+=6;
     var fps=Object.keys(c.porPago||{}).filter(function(k){return c.porPago[k]>0;});
     if(fps.length){ L('Por forma de pago:'); fps.forEach(function(k){ L('   '+k+': '+CP.clp(c.porPago[k])); }); }
+    // Preliquidación ruta-vs-rendido (si planta cargó la ruta del día)
+    try{
+      var pl=preliquidacion();
+      if(pl.rutaN){
+        doc.line(40,y-6,380,y-6); y+=6;
+        L('PRELIQUIDACION RUTA VS RENDIDO  ['+(pl.cuadradoTotal?'CUADRADO':'CON DIFERENCIAS')+']', true);
+        L('Facturas en ruta: '+pl.rutaN+'   .   Despachado: '+CP.clp(pl.tDespachado));
+        L('Rendido: '+CP.clp(pl.tRendido)+'   .   Cuadradas: '+pl.nCuadradas);
+        if(pl.nDiferencia) L('Con diferencia: '+pl.nDiferencia, true);
+        if(pl.nSinRendir) L('Sin rendir: '+pl.nSinRendir+' ('+CP.clp(pl.tDif)+')', true);
+        if(pl.nNoEntregada) L('No entregadas: '+pl.nNoEntregada);
+        if(pl.nExtras) L('Fuera de ruta: '+pl.nExtras);
+        var probl=pl.items.filter(function(it){return it.estado==='DIFERENCIA'||it.estado==='SIN_RENDIR';});
+        if(probl.length){ L('Pendientes de cuadrar:');
+          probl.slice(0,20).forEach(function(it){ var tag=it.estado==='DIFERENCIA'?('dif '+CP.clp(it.dif)):'sin rendir'; L('   '+String(it.folio)+' '+String(it.cliente).slice(0,20)+' . '+tag); });
+          if(probl.length>20) L('   ...y '+(probl.length-20)+' mas');
+        }
+      }
+    }catch(e){}
+    if(y>470){ doc.addPage(); y=50; }
     y+=12; doc.text('Firma:',40,y);
     if(firmaData){ try{ doc.addImage(firmaData,'PNG',92,y-16,160,56); }catch(e2){} }
     else { doc.setDrawColor(150); doc.line(92,y,260,y); }
     return doc;
   }catch(err){ return null; }
 }
-function generarRendicion(){
-  if(!window.CP||!CP.cuadreDia) return;
+// Arma el PDF de la rendición/preliquidación (reutilizado por descargar / imprimir / WhatsApp).
+function buildRendicionDoc(){
+  if(!window.CP||!CP.cuadreDia) return null;
   var c=CP.cuadreDia();
   var pf=(function(){try{return JSON.parse(localStorage.getItem('cp_perfil')||'{}');}catch(e){return {};}})();
   var firmaData=_cierreHas?document.getElementById('cierreSig').toDataURL('image/png'):null;
-  var doc=rendicionPdf(c, firmaData, pf.nombre||'Repartidor', pf.patente||'');
+  return rendicionPdf(c, firmaData, pf.nombre||'Repartidor', pf.patente||'');
+}
+function _rendFname(){ return 'rendicion-'+new Date().toISOString().slice(0,10)+'.pdf'; }
+function _esNativo(){ return !!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()); }
+function generarRendicion(){
+  var doc=buildRendicionDoc();
   if(!doc){ showToast('No se pudo generar el PDF'); return; }
-  var fname='rendicion-'+new Date().toISOString().slice(0,10)+'.pdf';
-  guardarPdf(doc, fname);
+  guardarPdf(doc, _rendFname());
   closeCierre();
   showToast('✓ Resumen de rendición generado');
+}
+// IMPRIMIR: navegador → abre el PDF con el diálogo de impresión; APK → comparte (el menú Android trae "Imprimir").
+function imprimirRendicion(){
+  var doc=buildRendicionDoc();
+  if(!doc){ showToast('No se pudo generar el PDF'); return; }
+  if(_esNativo()){ guardarPdf(doc, _rendFname()); showToast('Elige "Imprimir" en el menú'); return; }
+  try{ doc.autoPrint(); var url=doc.output('bloburl'); var w=window.open(url,'_blank'); if(!w){ guardarPdf(doc,_rendFname()); } }
+  catch(e){ guardarPdf(doc,_rendFname()); }
+}
+// WHATSAPP: APK → comparte el PDF por el share sheet (incluye WhatsApp); navegador → wa.me con un resumen de texto.
+function whatsappRendicion(){
+  var doc=buildRendicionDoc();
+  if(!doc){ showToast('No se pudo generar el PDF'); return; }
+  if(_esNativo()){ guardarPdf(doc, _rendFname()); showToast('Elige WhatsApp para enviarlo'); return; }
+  try{
+    var c=CP.cuadreDia(); var pl=(function(){try{return preliquidacion();}catch(e){return {rutaN:0};}})();
+    var L=['*Rendicion '+new Date().toLocaleDateString('es-CL')+'*'];
+    L.push('Facturas: '+c.n+' - Facturado: '+CP.clp(c.totalFacturado));
+    L.push('Efectivo a rendir: '+CP.clp(c.efectivo));
+    if(c.aCobrarDespues>0) L.push('A cobrar despues: '+CP.clp(c.aCobrarDespues));
+    if(pl.rutaN) L.push('Preliquidacion: '+(pl.cuadradoTotal?'CUADRADO':( pl.nDiferencia+' dif, '+pl.nSinRendir+' sin rendir')));
+    window.open('https://wa.me/?text='+encodeURIComponent(L.join('\n')),'_blank');
+  }catch(e){ guardarPdf(doc,_rendFname()); }
 }
 // ───────── Factura NO entregada (rechazo / otro motivo del rubro) ─────────
 var _fallidaMotivo=null;
@@ -1095,10 +1221,12 @@ function cargarMisEntregas(){
       var st=done?'<span class="st st-ok">✓ entregada</span>':'<span class="st st-pend">firmar →</span>';
       var dir=escEnt((e.direccion||'')+(e.comuna?' · '+e.comuna:''));
       var extra=escEnt((e.monto?' · '+(window.CP?CP.clp(e.monto):'$'+e.monto):'')+(e.folio?' · '+e.folio:''));
+      // Condición de pago esperada de la factura (viene del Excel de planta): el chofer ve cómo le van a pagar.
+      var cond=e.condicion_pago?'<span style="display:inline-block;margin-top:4px;font-family:var(--mono);font-size:9.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:rgba(46,102,201,.12);color:var(--blue)">💳 '+escEnt(e.condicion_pago)+'</span>':'';
       // click por ÍNDICE (número), nunca interpolando e.id en el atributo → sin inyección
       var tap=done?'':' data-eidx="'+idx+'" onclick="openSheetByIdx(this)" style="cursor:pointer"';
       var _nu=navUrl(e); var nav=_nu?'<a class="navbtn" href="'+_nu+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🧭 Ir</a>':'';
-      return '<div class="deliv"'+tap+'><div class="num">'+escEnt(e.orden||idx+1)+'</div><div class="info"><div class="n">'+escEnt(e.cliente||e.codigo_cliente||'—')+'</div><div class="a">'+dir+extra+'</div></div>'+nav+st+'</div>';
+      return '<div class="deliv"'+tap+'><div class="num">'+escEnt(e.orden||idx+1)+'</div><div class="info"><div class="n">'+escEnt(e.cliente||e.codigo_cliente||'—')+'</div><div class="a">'+dir+extra+'</div>'+cond+'</div>'+nav+st+'</div>';
     }).join('');
   }).catch(function(err){
     var m=(err&&err.message)||'';
@@ -1426,8 +1554,9 @@ function procesarFoto(file){
             monto: Number(ai.valorConIva)||Number(ai.valorSinIva)||0, glosa: ai.glosa||'',
             codigoCliente: ai.codigoCliente||'', codigoTransporte: ai.codigoTransporte||'', ordenCompra: (ai.ordenCompra!=null?String(ai.ordenCompra):''),
             valorSinIva: Number(ai.valorSinIva)||0, valorConIva: Number(ai.valorConIva)||0,
-            // Validación de recepción: timbre del proveedor + firma del cliente en la factura física
-            timbreProveedor: !!ai.timbreProveedor, firmaReceptor: !!ai.firmaReceptor, visada: !!(ai.timbreProveedor && ai.firmaReceptor),
+            // Validación de recepción: timbre + firma del cliente, o el texto "RECEPCIÓN CONFORME" detectado por la IA.
+            timbreProveedor: !!ai.timbreProveedor, firmaReceptor: !!ai.firmaReceptor, recepcionConforme: !!ai.recepcionConforme,
+            visada: !!(ai.recepcionConforme || (ai.timbreProveedor && ai.firmaReceptor)),
             fuente: fuente
           };
         }
@@ -1478,7 +1607,7 @@ function pintarVisada(){
   var on=!!(docPendiente && docPendiente.visada);
   if(box){ box.style.color=on?'#fff':'transparent'; box.style.background=on?'var(--green)':'transparent'; box.style.borderColor=on?'var(--green)':'var(--line-2)'; }
   if(tog){ tog.style.borderColor=on?'rgba(30,127,84,.4)':'var(--line-2)'; tog.style.background=on?'rgba(30,127,84,.08)':'var(--bg)'; }
-  if(ia){ ia.textContent=(docPendiente && (docPendiente.timbreProveedor||docPendiente.firmaReceptor)) ? ('· IA '+(docPendiente.timbreProveedor?'timbre✓':'timbre✗')+' '+(docPendiente.firmaReceptor?'firma✓':'firma✗')) : ''; }
+  if(ia){ var dp=docPendiente; ia.textContent=(dp && (dp.timbreProveedor||dp.firmaReceptor||dp.recepcionConforme)) ? ('· IA '+(dp.timbreProveedor?'timbre✓':'timbre✗')+' '+(dp.firmaReceptor?'firma✓':'firma✗')+(dp.recepcionConforme?' · conforme✓':'')) : ''; }
 }
 function toggleVisada(){ if(!docPendiente) return; docPendiente.visada=!docPendiente.visada; pintarVisada(); }
 // El folio escaneado debe coincidir con un folio de la ruta que planta cargó a este transporte.
@@ -1588,7 +1717,7 @@ function actualizarSubpagos(){
 // Genera un input de monto por cada método marcado en el pago mixto (conserva lo ya escrito).
 function renderMixtoMontos(){
   var cont=document.getElementById('mixtoMontos'); if(!cont) return;
-  var nombres={EFECTIVO:'Efectivo',DEBITO:'Débito',CREDITO:'Crédito',CHEQUE:'Cheque',TRANSFERENCIA:'Transferencia',GETNET:'Getnet'};
+  var nombres={EFECTIVO:'Efectivo',DEBITO:'Débito',CREDITO:'Crédito (FP30)',CHEQUE:'Cheque',TRANSFERENCIA:'Transferencia',DEPOSITO:'Depósito',GETNET:'Getnet'};
   var prev={}; Array.prototype.forEach.call(cont.querySelectorAll('input[data-mm]'), function(i){ prev[i.getAttribute('data-mm')]=(i.value||'').replace(/[^0-9]/g,''); });
   cont.innerHTML = mixtoComps.map(function(m){
     return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="flex:0 0 96px;font-size:11.5px;color:var(--ink-dim)">'+(nombres[m]||m)+'</span><input data-mm="'+m+'" inputmode="numeric" placeholder="Monto $" class="minp" style="flex:1" oninput="resumenMixto()" value="'+(prev[m]||'')+'"></div>';
@@ -1667,16 +1796,17 @@ function procesarComprobantePago(file){
       if(empty) empty.style.display='none'; if(box) box.style.display='block';
       if(est){ est.textContent='Leyendo con IA…'; est.style.color='var(--amber)'; }
       if(navigator.onLine===false){ if(est){ est.textContent='Sin internet · ingresa los datos a mano'; est.style.color='var(--amber)'; } return; }
-      var aiP=(window.CPSupabase&&CPSupabase.extraerFactura)?CPSupabase.extraerFactura(jpegFull.split(',')[1]):Promise.resolve(null);
+      // modo 'comprobante' → la IA usa el prompt de comprobante bancario y devuelve el MONTO transferido (no el total de una factura).
+      var aiP=(window.CPSupabase&&CPSupabase.extraerFactura)?CPSupabase.extraerFactura(jpegFull.split(',')[1],'comprobante'):Promise.resolve(null);
       aiP.then(function(ai){
         if(miGen!==_cpGen) return; // llegó tarde: el comprobante ya se cambió/limpió → no pisar la pantalla actual
         if(ai){
-          var m=Number(ai.valorConIva)||Number(ai.monto)||Number(ai.valorSinIva)||0;
+          var m=Number(ai.monto)||Number(ai.valorConIva)||Number(ai.valorSinIva)||0; // 'monto' = clave del prompt de comprobante; fallback a las de factura
           var setIf=function(id,val){ var el=document.getElementById(id); if(el && !el.value && val) el.value=val; };
           if(m) setIf('cpMonto', m);
           setIf('cpFecha', ai.fecha);
-          setIf('cpRef', (ai.folio!=null?String(ai.folio):''));
-          setIf('cpRutOrigen', ai.rutEmisor);
+          setIf('cpRef', (ai.operacion!=null&&ai.operacion!==''?String(ai.operacion):(ai.folio!=null?String(ai.folio):'')));
+          setIf('cpRutOrigen', ai.rutOrigen||ai.rutEmisor);
           if(est){ est.textContent='✓ leído por IA · verifica los datos'; est.style.color='var(--green)'; }
         } else {
           if(est){ est.textContent='No se pudo leer · ingrésalo a mano'; est.style.color='var(--amber)'; }
