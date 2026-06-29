@@ -914,35 +914,49 @@ function _normFolio(f){ return String(f==null?'':f).replace(/[^0-9A-Za-z]/g,'').
 function preliquidacion(){
   var ruta=(typeof entregasPlanta!=='undefined'&&Array.isArray(entregasPlanta))?entregasPlanta:[];
   var cq=(window.CP&&CP.cuadreDia)?CP.cuadreDia():{docs:[],fallidas:[]};
-  // Índice de lo escaneado HOY por folio (vendidas tienen prioridad sobre fallidas)
-  var scan={};
-  (cq.fallidas||[]).forEach(function(d){ var f=_normFolio(d.folio); if(f) scan[f]={doc:d,tipo:'fallida'}; });
-  (cq.docs||[]).forEach(function(d){ var f=_normFolio(d.folio); if(f) scan[f]={doc:d,tipo:'vendida'}; });
-  var items=[], usados={}, tDespachado=0, tRendido=0, tDif=0, nCuadradas=0, nDiferencia=0, nSinRendir=0, nNoEntregada=0;
+  // La ruta (Excel SAP) trae el monto NETO sin IVA. La factura escaneada guarda neto + total c/IVA.
+  // Para cuadrar SIEMPRE comparamos NETO vs NETO (si falta el neto, lo reconstruyo desde el total /1.19).
+  function neto(d){ return Number(d.valorSinIva) || (Number(d.valorConIva)?Math.round(Number(d.valorConIva)/1.19):Number(d.monto)) || 0; }
+  // Índice de lo escaneado HOY por folio normalizado (vendida sobre fallida). _amb marca colisión:
+  // dos folios crudos distintos que normalizan igual (ej. boleta 100 vs factura 100) → no se puede confiar el match.
+  var scan={}, _raw={}, _amb={};
+  function idx(d,tipo){ var f=_normFolio(d.folio); if(!f) return;
+    if(_raw[f]!=null && _raw[f]!==String(d.folio||'')) _amb[f]=true;
+    _raw[f]=String(d.folio||'');
+    if(!scan[f] || tipo==='vendida') scan[f]={doc:d,tipo:tipo};
+  }
+  (cq.fallidas||[]).forEach(function(d){ idx(d,'fallida'); });
+  (cq.docs||[]).forEach(function(d){ idx(d,'vendida'); });
+  var items=[], usados={}, tDespachado=0, tRendido=0, tDif=0, nCuadradas=0, nDiferencia=0, nSinRendir=0, nNoEntregada=0, nRevisar=0;
   ruta.forEach(function(e){
     var f=_normFolio(e.folio), esperado=Number(e.monto)||0; tDespachado+=esperado;
     var m=f?scan[f]:null; if(f) usados[f]=true;
     var it={ folio:e.folio||'—', cliente:e.cliente||e.codigo_cliente||'—', esperado:esperado, condicion:e.condicion_pago||'' };
     if(!m){ it.estado='SIN_RENDIR'; it.retorno=0; it.dif=esperado; tDif+=esperado; nSinRendir++; }
     else if(m.tipo==='fallida'){ it.estado='NO_ENTREGADA'; it.retorno=0; it.dif=0; it.motivo=(m.doc.motivo||m.doc.motivoFallida||''); nNoEntregada++; }
-    else { var ret=Number(m.doc.valorConIva)||Number(m.doc.monto)||0; it.retorno=ret; it.formaPago=m.doc.formaPago||'';
-      var dif=esperado?(esperado-ret):0; it.dif=dif; tRendido+=ret;
-      if(esperado && Math.abs(dif)>=1){ it.estado='DIFERENCIA'; nDiferencia++; tDif+=dif; }
-      else { it.estado='CUADRADA'; nCuadradas++; }
+    else { var ret=neto(m.doc); it.retorno=ret; it.formaPago=m.doc.formaPago||''; tRendido+=ret;
+      var tol=Math.max(2, Math.round(esperado*0.01)); // tolerancia $2 o 1% → absorbe redondeo del IVA reconstruido
+      if(_amb[f]){ it.estado='REVISAR'; it.nota='folio ambiguo (otro doc con el mismo número)'; it.dif=0; nRevisar++; }
+      else if(esperado<=0 && ret>0){ it.estado='REVISAR'; it.nota='la ruta no traía monto'; it.dif=0; nRevisar++; }
+      else { var dif=esperado-ret; it.dif=dif;
+        if(esperado && Math.abs(dif)>tol){ it.estado='DIFERENCIA'; nDiferencia++; tDif+=dif; }
+        else { it.estado='CUADRADA'; nCuadradas++; }
+      }
     }
     items.push(it);
   });
-  // Facturas escaneadas que NO estaban en la ruta (extras / fuera de ruta)
-  var extras=[];
-  Object.keys(scan).forEach(function(f){ if(usados[f]||scan[f].tipo!=='vendida') return; var d=scan[f].doc;
-    var ret=Number(d.valorConIva)||Number(d.monto)||0; extras.push({ folio:d.folio||'—', cliente:d.cliente||d.razonReceptor||'—', retorno:ret }); tRendido+=ret;
+  // Escaneadas que NO estaban en la ruta: vendidas (extras, suman a rendido) y no-entregadas fuera de ruta (trazabilidad).
+  var extras=[], nExtrasFallidas=0;
+  Object.keys(scan).forEach(function(f){ if(usados[f]) return; var d=scan[f].doc;
+    if(scan[f].tipo==='vendida'){ var ret=neto(d); extras.push({ folio:d.folio||'—', cliente:d.cliente||d.razonReceptor||'—', retorno:ret, estado:'FUERA_RUTA' }); tRendido+=ret; }
+    else { extras.push({ folio:d.folio||'—', cliente:d.cliente||d.razonReceptor||'—', retorno:0, estado:'NO_ENTREGADA' }); nExtrasFallidas++; }
   });
-  // Orden: primero las problemáticas (diferencia/sin rendir) para que salten a la vista
-  var rank={DIFERENCIA:0,SIN_RENDIR:1,NO_ENTREGADA:2,CUADRADA:3};
-  items.sort(function(a,b){ return (rank[a.estado]-rank[b.estado]); });
+  // Orden: primero lo problemático (diferencia/revisar/sin rendir) para que salte a la vista
+  var rank={DIFERENCIA:0,REVISAR:1,SIN_RENDIR:2,NO_ENTREGADA:3,CUADRADA:4};
+  items.sort(function(a,b){ return ((rank[a.estado]==null?9:rank[a.estado])-(rank[b.estado]==null?9:rank[b.estado])); });
   return { items:items, extras:extras, rutaN:ruta.length, tDespachado:tDespachado, tRendido:tRendido, tDif:tDif,
-    nCuadradas:nCuadradas, nDiferencia:nDiferencia, nSinRendir:nSinRendir, nNoEntregada:nNoEntregada, nExtras:extras.length,
-    cuadradoTotal:(nDiferencia===0 && nSinRendir===0) };
+    nCuadradas:nCuadradas, nDiferencia:nDiferencia, nSinRendir:nSinRendir, nNoEntregada:nNoEntregada, nRevisar:nRevisar, nExtras:extras.length, nExtrasFallidas:nExtrasFallidas,
+    cuadradoTotal:(nDiferencia===0 && nSinRendir===0 && nRevisar===0) };
 }
 function _plRow(k,v,col){ return '<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="color:var(--ink-dim)">'+k+'</span><span style="font-family:var(--mono)'+(col?(';color:'+col+';font-weight:700'):'')+'">'+v+'</span></div>'; }
 function renderPreliquidacion(){
@@ -955,16 +969,18 @@ function renderPreliquidacion(){
     +'<span style="margin-left:auto;font-size:11px;font-weight:800;color:'+(p.cuadradoTotal?'var(--green)':'var(--red)')+'">'+(p.cuadradoTotal?'✓ CUADRADO':'⚠ CON DIFERENCIAS')+'</span></div>';
   var res='<div style="font-size:12.5px;margin-bottom:8px">'
     +_plRow('Facturas en ruta', p.rutaN)
-    +_plRow('Despachado', clp(p.tDespachado))
-    +_plRow('Rendido', clp(p.tRendido))
+    +_plRow('Despachado (neto)', clp(p.tDespachado))
+    +_plRow('Rendido (neto)', clp(p.tRendido))
     +(p.nCuadradas?_plRow('✓ Cuadradas', p.nCuadradas,'var(--green)'):'')
     +(p.nDiferencia?_plRow('⚠ Con diferencia', p.nDiferencia,'var(--red)'):'')
+    +(p.nRevisar?_plRow('? Revisar', p.nRevisar,'var(--amber)'):'')
     +(p.nSinRendir?_plRow('• Sin rendir', p.nSinRendir+' · '+clp(p.tDif),'var(--amber)'):'')
     +(p.nNoEntregada?_plRow('🚫 No entregadas', p.nNoEntregada):'')
-    +(p.nExtras?_plRow('+ Fuera de ruta', p.nExtras):'')
+    +((p.nExtras-p.nExtrasFallidas)>0?_plRow('+ Fuera de ruta', (p.nExtras-p.nExtrasFallidas)):'')
+    +(p.nExtrasFallidas?_plRow('🚫 No entreg. fuera de ruta', p.nExtrasFallidas):'')
     +'</div>';
-  var col={CUADRADA:'var(--green)',DIFERENCIA:'var(--red)',SIN_RENDIR:'var(--amber)',NO_ENTREGADA:'var(--ink-faint)'};
-  var lbl=function(it){ return {CUADRADA:'✓',DIFERENCIA:'dif '+clp(it.dif),SIN_RENDIR:'sin rendir',NO_ENTREGADA:'no entreg.'}[it.estado]||it.estado; };
+  var col={CUADRADA:'var(--green)',DIFERENCIA:'var(--red)',REVISAR:'var(--amber)',SIN_RENDIR:'var(--amber)',NO_ENTREGADA:'var(--ink-faint)'};
+  var lbl=function(it){ return {CUADRADA:'✓',DIFERENCIA:'dif '+clp(it.dif),REVISAR:(it.nota||'revisar'),SIN_RENDIR:'sin rendir',NO_ENTREGADA:'no entreg.'}[it.estado]||it.estado; };
   var det=p.items.map(function(it){
     return '<div style="display:flex;justify-content:space-between;gap:6px;padding:4px 0;border-top:1px solid var(--line);font-size:11.5px">'
       +'<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escEnt(it.folio)+' · '+escEnt(it.cliente)+'</span>'
@@ -1055,15 +1071,16 @@ function rendicionPdf(c, firmaData, nombre, patente){
       if(pl.rutaN){
         doc.line(40,y-6,380,y-6); y+=6;
         L('PRELIQUIDACION RUTA VS RENDIDO  ['+(pl.cuadradoTotal?'CUADRADO':'CON DIFERENCIAS')+']', true);
-        L('Facturas en ruta: '+pl.rutaN+'   .   Despachado: '+CP.clp(pl.tDespachado));
-        L('Rendido: '+CP.clp(pl.tRendido)+'   .   Cuadradas: '+pl.nCuadradas);
+        L('Facturas en ruta: '+pl.rutaN+'   .   Despachado neto: '+CP.clp(pl.tDespachado));
+        L('Rendido neto: '+CP.clp(pl.tRendido)+'   .   Cuadradas: '+pl.nCuadradas);
         if(pl.nDiferencia) L('Con diferencia: '+pl.nDiferencia, true);
+        if(pl.nRevisar) L('Revisar: '+pl.nRevisar, true);
         if(pl.nSinRendir) L('Sin rendir: '+pl.nSinRendir+' ('+CP.clp(pl.tDif)+')', true);
         if(pl.nNoEntregada) L('No entregadas: '+pl.nNoEntregada);
         if(pl.nExtras) L('Fuera de ruta: '+pl.nExtras);
-        var probl=pl.items.filter(function(it){return it.estado==='DIFERENCIA'||it.estado==='SIN_RENDIR';});
+        var probl=pl.items.filter(function(it){return it.estado==='DIFERENCIA'||it.estado==='SIN_RENDIR'||it.estado==='REVISAR';});
         if(probl.length){ L('Pendientes de cuadrar:');
-          probl.slice(0,20).forEach(function(it){ var tag=it.estado==='DIFERENCIA'?('dif '+CP.clp(it.dif)):'sin rendir'; L('   '+String(it.folio)+' '+String(it.cliente).slice(0,20)+' . '+tag); });
+          probl.slice(0,20).forEach(function(it){ var tag=it.estado==='DIFERENCIA'?('dif '+CP.clp(it.dif)):(it.estado==='REVISAR'?'revisar':'sin rendir'); L('   '+String(it.folio)+' '+String(it.cliente).slice(0,20)+' . '+tag); });
           if(probl.length>20) L('   ...y '+(probl.length-20)+' mas');
         }
       }
@@ -1611,7 +1628,7 @@ function pintarVisada(){
 }
 function toggleVisada(){ if(!docPendiente) return; docPendiente.visada=!docPendiente.visada; pintarVisada(); }
 // El folio escaneado debe coincidir con un folio de la ruta que planta cargó a este transporte.
-function entregaPorFolio(fol){ var r=(typeof entregasPlanta!=='undefined'&&entregasPlanta)?entregasPlanta:[]; var nf=_normFolio(fol); if(!nf) return null; return r.filter(function(e){ return e&&e.folio&&_normFolio(e.folio)===nf; })[0]||null; } // compara folio normalizado (ignora "FA"/ceros)
+function entregaPorFolio(fol){ var r=(typeof entregasPlanta!=='undefined'&&entregasPlanta)?entregasPlanta:[]; var nf=_normFolio(fol); if(!nf) return null; var ms=r.filter(function(e){ return e&&e.folio&&_normFolio(e.folio)===nf; }); return ms.length===1?ms[0]:null; } // folio normalizado (ignora "FA"/ceros); si hay >1 match (folio ambiguo) NO adivina → null
 function pintarRutaMatch(){
   var box=document.getElementById('rutaMatch'); if(!box) return;
   var ruta=(typeof entregasPlanta!=='undefined'&&entregasPlanta)?entregasPlanta:[];

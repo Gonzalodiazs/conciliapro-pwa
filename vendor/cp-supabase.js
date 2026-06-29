@@ -174,6 +174,15 @@
   function qSet(a) { try { localStorage.setItem(QKEY, JSON.stringify(a)); return true; } catch (e) { return false; } }
 
   function insertDocSeguro(doc) {
+    // Estampa la identidad del chofer ACTUAL al CAPTURAR (no al drenar la cola): si la factura se encola
+    // offline y luego entra otro chofer en el mismo teléfono, NO se sube atribuida al usuario equivocado.
+    try { var _pf = perfil();
+      if (doc) {
+        if (!doc.repartidor) doc.repartidor = _pf.nombre || '';
+        if (!doc.patente) doc.patente = _pf.patente || '';
+        if (doc.empresaId == null) doc.empresaId = _pf.empresa_id || null;
+      }
+    } catch (e) {}
     // Promise.resolve().then(insertDoc) → cualquier throw SÍNCRONO de insertDoc se vuelve rechazo
     // y SÍ entra al .catch (se encola). Garantiza que jamás se pierda una factura ni se trabe el botón.
     return Promise.resolve().then(function () { return insertDoc(doc); }).catch(function (err) {

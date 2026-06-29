@@ -26,16 +26,17 @@
     catch (e) { return null; }
   }
 
-  // ── Aislamiento por usuario ───────────────────────────────────────────────
-  // Si en este dispositivo inicia sesión un usuario DISTINTO al dueño del caché local,
-  // se limpia el cuadre (cp_data_v6) → ningún chofer ve los comprobantes/documentos de otro.
+  // ── Aislamiento por usuario: caché PARTICIONADO por dueño ─────────────────
+  // Cada chofer usa su propia partición (cp_data_v6__<empresa>_<id>). Al cambiar de usuario en el
+  // mismo teléfono NO se borra nada: se activa la partición del nuevo → ninguno ve datos del otro y
+  // los de cada uno se conservan para cuando vuelva a entrar. (cp_perfil NO trae 'usuario', así que se
+  // usa el primer id estable disponible: usuario|id|patente|nombre. Las colas offline cp_cola_* son aparte.)
   try {
     var _perfil = JSON.parse(localStorage.getItem('cp_perfil') || '{}');
-    var _cur = (_perfil && _perfil.usuario) ? String(_perfil.usuario) : '';
-    if (_cur) {
-      var _owner = localStorage.getItem('cp_data_owner') || '';
-      if (_owner && _owner !== _cur) { try { localStorage.removeItem(KEY); } catch (e) {} }
-      localStorage.setItem('cp_data_owner', _cur);
+    var _id = String((_perfil && (_perfil.usuario || _perfil.id || _perfil.patente || _perfil.nombre)) || '');
+    if (_id) {
+      var _emp = String((_perfil && _perfil.empresa_id) || '');
+      KEY = 'cp_data_v6__' + (_emp ? _emp.toLowerCase().replace(/[^a-z0-9]/g, '') + '_' : '') + _id.toLowerCase().replace(/[^a-z0-9]/g, '');
     }
   } catch (e) {}
 
