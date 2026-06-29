@@ -121,6 +121,7 @@
         clientReqId: doc.clientReqId || '',
         tieneComprobante: !!(doc.comprobantePagoPdf || doc.comprobante_pago_url),
         pagoMonto: Number(doc.pagoMonto) || 0,
+        notaCredito: doc.notaCredito || '', notaCreditoMonto: Number(doc.notaCreditoMonto) || 0,
         pagoFecha: doc.pagoFecha || '',
         pagoReferencia: doc.pagoReferencia || '',
         pagoRutOrigen: doc.pagoRutOrigen || '',
@@ -177,11 +178,14 @@
     cuadreDia: function () {
       var hoy = new Date(); hoy.setHours(0, 0, 0, 0); var t0 = hoy.getTime();
       var docs = data.documentos.filter(function (d) { return (d.ts || 0) >= t0; });
-      var efectivo = 0, electronicoOk = 0, pendienteMonto = 0, aCobrarDespues = 0, pendientes = [], porPago = {};
+      var efectivo = 0, electronicoOk = 0, pendienteMonto = 0, aCobrarDespues = 0, pendientes = [], porPago = {}, notasCredito = 0;
       docs.forEach(function (d) {
         if ((d.estado || '') === 'FALLIDA') return; // factura NO entregada (rechazo/otro): no es venta, no entra al cuadre de pagos
         var fp = (d.formaPago || '').toUpperCase();
-        var tot = Number(d.valorConIva) || Number(d.monto) || 0;
+        // Nota de crédito a favor del cliente: rebaja lo que realmente paga (tot = factura − NC).
+        var bruto = Number(d.valorConIva) || Number(d.monto) || 0;
+        var nc = Number(d.notaCreditoMonto) || 0; notasCredito += nc;
+        var tot = Math.max(0, bruto - nc);
         porPago[fp || '—'] = (porPago[fp || '—'] || 0) + tot;
         var det = d.pagoDetalle || null;
         var efDet = (det && det.EFECTIVO) ? Number(det.EFECTIVO) : (fp === 'EFECTIVO' ? tot : 0);
@@ -210,7 +214,7 @@
         var det = d.pagoDetalle || null;
         var soloEfMix = fp === 'MIXTO' && det && Object.keys(det).length && Object.keys(det).every(function (k) { return k === 'EFECTIVO'; });
         if (soloEfMix || d.tieneComprobante) return;
-        var tot = Number(d.valorConIva) || Number(d.monto) || 0;
+        var tot = Math.max(0, (Number(d.valorConIva) || Number(d.monto) || 0) - (Number(d.notaCreditoMonto) || 0));
         var efDet = (det && det.EFECTIVO) ? Number(det.EFECTIVO) : 0;
         var credDet = (det && det.CREDITO) ? Number(det.CREDITO) : 0;
         if (tot - efDet - credDet > 0) { arrastreMonto += (tot - efDet - credDet); pendientesArrastre.push(d); }
@@ -220,7 +224,7 @@
       return {
         n: vendidas.length,
         totalFacturado: vendidas.reduce(function (s, d) { return s + (Number(d.valorConIva) || Number(d.monto) || 0); }, 0),
-        efectivo: efectivo, electronicoOk: electronicoOk, pendienteMonto: pendienteMonto, aCobrarDespues: aCobrarDespues,
+        efectivo: efectivo, electronicoOk: electronicoOk, pendienteMonto: pendienteMonto, aCobrarDespues: aCobrarDespues, notasCredito: notasCredito,
         pendientesArrastre: pendientesArrastre, arrastreMonto: arrastreMonto, arrastreN: pendientesArrastre.length,
         pendientes: pendientes, porPago: porPago,
         fallidas: fallidas, fallidasN: fallidas.length,

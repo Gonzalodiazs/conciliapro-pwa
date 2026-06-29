@@ -400,6 +400,20 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
           <button type="button" class="mini-btn" style="margin-top:9px;background:rgba(200,64,46,.08);color:var(--red);border-color:rgba(200,64,46,.28)" onclick="quitarComprobantePago()">✕ Quitar comprobante</button>
         </div>
       </div>
+      <!-- Nota de crédito a favor del cliente: rebaja lo que paga (a cobrar = factura − NC). -->
+      <div style="margin-bottom:10px">
+        <label onclick="toggleNC()" style="display:flex;align-items:center;gap:9px;background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:11px;cursor:pointer;font-size:12.5px;min-height:44px;box-sizing:border-box">
+          <span id="ncChk" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--line-2);display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:transparent;flex-shrink:0">✓</span>
+          <span>Cliente tiene <b>nota de crédito</b> a favor</span>
+        </label>
+        <div id="ncBox" style="display:none;margin-top:8px">
+          <div class="mgrid" style="margin-bottom:7px">
+            <input id="ncNum" placeholder="N° nota de crédito" class="minp">
+            <input id="ncMonto" inputmode="numeric" placeholder="Monto NC $" class="minp" oninput="actualizarACobrar()">
+          </div>
+          <div id="ncACobrar" style="font-size:11.5px;color:var(--ink-dim);font-family:var(--mono)"></div>
+        </div>
+      </div>
       <!-- Validación de recepción: la factura física trae timbre del proveedor + firma del cliente -->
       <label id="visadaTog" onclick="toggleVisada()" style="display:flex;align-items:center;gap:9px;background:var(--bg);border:1px solid var(--line-2);border-radius:10px;padding:11px;margin-bottom:9px;cursor:pointer;font-size:12.5px;min-height:44px;box-sizing:border-box">
         <span id="vtBox" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--line-2);display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:transparent;flex-shrink:0">✓</span>
@@ -1046,7 +1060,9 @@ function guardarPdf(doc, fname){
 // Una fila de rendición por factura: folio, método, monto (total), monto baucher (comprobante),
 // diferencia del descuadre y si quedó CUADRADA. Maneja efectivo/crédito (sin baucher), mixto y electrónico.
 function _filaRend(d){
-  var monto = Number(d.valorConIva)||Number(d.monto)||0;
+  var monto = Number(d.valorConIva)||Number(d.monto)||0;                              // factura total
+  var nc = Number(d.notaCreditoMonto)||0; var ncNum = String(d.notaCredito||'');      // nota de crédito a favor
+  var cobrar = Math.max(0, monto - nc);                                               // lo que el cliente paga (factura − NC)
   var fp = (d.formaPago||'').toUpperCase();
   var baucher = Number(d.pagoMonto)||0;
   var esEf = fp==='EFECTIVO';
@@ -1059,65 +1075,91 @@ function _filaRend(d){
     Object.keys(det).forEach(function(k){ if(k!=='EFECTIVO'&&k!=='CREDITO') elec+=Number(det[k])||0; });
     necesita = elec>0; if(baucher<=0) baucher=elec;
     var rendido = ef + cr + (d.tieneComprobante?elec:0);
-    dif = monto - rendido; var tolm=Math.max(2,Math.round(monto*0.01));
+    dif = cobrar - rendido; var tolm=Math.max(2,Math.round(cobrar*0.01));
     cuad = Math.abs(dif)<=tolm && (elec<=0 || d.tieneComprobante);
-  } else {                                                                            // transferencia/depósito/cheque/getnet/débito
+  } else {                                                                            // transferencia/depósito/cheque/getnet
     necesita = !!fp;
-    if(d.tieneComprobante){ dif = baucher>0?(monto-baucher):0; var tol=Math.max(2,Math.round(monto*0.01)); cuad=Math.abs(dif)<=tol; }
-    else { cuad=false; dif=monto-baucher; }                                           // sin comprobante → descuadrado
+    if(d.tieneComprobante){ dif = baucher>0?(cobrar-baucher):0; var tol=Math.max(2,Math.round(cobrar*0.01)); cuad=Math.abs(dif)<=tol; }
+    else { cuad=false; dif=cobrar-baucher; }                                          // sin comprobante → descuadrado
   }
-  return { folio:String(d.folio||'—'), metodo:(fp||'—'), monto:monto, baucher:baucher, dif:dif, cuad:cuad, necesita:necesita };
+  return { folio:String(d.folio||'—'), metodo:(fp||'—'), monto:monto, nc:nc, ncNum:ncNum, cobrar:cobrar, baucher:baucher, dif:dif, cuad:cuad, necesita:necesita };
+}
+// Desglose de lo COBRADO por forma de pago base (el mixto se reparte por su detalle).
+function _desglosePago(docs){
+  var b={EFECTIVO:0,TRANSFERENCIA:0,DEPOSITO:0,GETNET:0,CHEQUE:0,FP30:0};
+  (docs||[]).forEach(function(d){
+    if((d.estado||'')==='FALLIDA') return;
+    var f=_filaRend(d), fp=f.metodo, det=d.pagoDetalle||null;
+    if(fp.indexOf('MIXTO')>=0 && det){
+      Object.keys(det).forEach(function(k){ var v=Number(det[k])||0; var kk=(k==='CREDITO')?'FP30':k; if(b[kk]==null)b[kk]=0; b[kk]+=v; });
+    } else {
+      var key=(fp.indexOf('CREDITO')>=0||fp.indexOf('FP30')>=0)?'FP30':(fp.indexOf('DEPOSITO')>=0?'DEPOSITO':(fp.indexOf('TRANSFER')>=0?'TRANSFERENCIA':(fp.indexOf('GETNET')>=0?'GETNET':(fp.indexOf('CHEQUE')>=0?'CHEQUE':(fp==='EFECTIVO'?'EFECTIVO':fp)))));
+      if(b[key]==null)b[key]=0; b[key]+=f.cobrar;
+    }
+  });
+  return b;
 }
 function rendicionPdf(c, firmaData, nombre, patente){
   if(!window.jspdf||!window.jspdf.jsPDF) return null;
   try{
-    var doc=new window.jspdf.jsPDF({unit:'pt',format:'a4'});
-    var M=36, W=595, X={folio:36, metodo:108, monto:330, baucher:410, dif:498, chk:538};
+    var doc=new window.jspdf.jsPDF({unit:'pt',format:'a4',orientation:'landscape'});
+    var M=36, W=842;
+    var X={folio:36, metodo:150, monto:360, nc:445, cobrado:540, baucher:625, dif:710, chk:778};
     var y=0;
-    function rText(s,xr){ var w=doc.getTextWidth(String(s)); doc.text(String(s), xr-w, y); }   // alineado a la derecha (robusto en jsPDF 1.x/2.x)
-    function cText(s,xc){ var w=doc.getTextWidth(String(s)); doc.text(String(s), xc-w/2, y); }  // centrado
+    function rText(s,xr){ var w=doc.getTextWidth(String(s)); doc.text(String(s), xr-w, y); }
+    function cText(s,xc){ var w=doc.getTextWidth(String(s)); doc.text(String(s), xc-w/2, y); }
     function cab(){
       doc.setFont(undefined,'bold'); doc.setFontSize(8.5);
       doc.text('FOLIO',X.folio,y); doc.text('METODO',X.metodo,y);
-      rText('MONTO',X.monto); rText('M.BAUCHER',X.baucher); rText('DIFERENCIA',X.dif); cText('OK',X.chk);
+      rText('MONTO',X.monto); rText('N.CREDITO',X.nc); rText('COBRADO',X.cobrado); rText('M.BAUCHER',X.baucher); rText('DIFEREN.',X.dif); cText('OK',X.chk);
       doc.setFont(undefined,'normal'); y+=4; doc.setDrawColor(150); doc.line(M,y,W-M,y); y+=12;
     }
-    try{ if(window.CP_LOGO){ var _lw=74, _lh=Math.round(_lw*((window.CP_LOGO_H||146)/(window.CP_LOGO_W||236))); doc.addImage(window.CP_LOGO,'PNG', W-M-_lw, 14, _lw, _lh); } }catch(eL){} // logo Soprole (PNG transparente), arriba a la derecha
-    doc.setFontSize(15); doc.setFont(undefined,'bold'); doc.text('RENDICION DEL DIA',M,46); doc.setFont(undefined,'normal');
+    try{ if(window.CP_LOGO){ var _lw=80, _lh=Math.round(_lw*((window.CP_LOGO_H||146)/(window.CP_LOGO_W||236))); doc.addImage(window.CP_LOGO,'PNG', W-M-_lw, 12, _lw, _lh); } }catch(eL){} // logo Soprole
+    doc.setFontSize(15); doc.setFont(undefined,'bold'); doc.text('RENDICION DEL DIA',M,44); doc.setFont(undefined,'normal');
+    var ahora=new Date();
+    var _id='REND-'+ahora.toISOString().slice(0,10).replace(/-/g,'')+'-'+((String(patente||nombre||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,8))||'NA')+'-'+('0'+ahora.getHours()).slice(-2)+('0'+ahora.getMinutes()).slice(-2);
     doc.setFontSize(9.5);
-    doc.text('Repartidor: '+(nombre||'-')+(patente?('   ·   '+patente):''), M, 64);
-    doc.text('Fecha: '+new Date().toLocaleString('es-CL')+'   ·   Facturas: '+c.n+'   ·   Facturado: '+CP.clp(c.totalFacturado), M, 78);
-    y=102; doc.setFontSize(8.5); cab();
+    doc.text('Repartidor: '+(nombre||'-')+(patente?('   ·   '+patente):''), M, 62);
+    doc.text('N° rendicion: '+_id+'   ·   Cierre: '+ahora.toLocaleString('es-CL'), M, 76);
+    doc.text('Facturas: '+c.n+'   ·   Facturado: '+CP.clp(c.totalFacturado)+((c.notasCredito>0)?('   ·   Notas de credito: -'+CP.clp(c.notasCredito)):''), M, 90);
+    y=112; doc.setFontSize(8.5); cab();
     var docs=(c.docs||[]).filter(function(d){ return (d.estado||'')!=='FALLIDA'; });
-    var nCuad=0, sMonto=0, sBau=0, sDif=0;
+    var nCuad=0,sMonto=0,sNc=0,sCobr=0,sBau=0,sDif=0;
     if(!docs.length){ doc.text('Sin facturas registradas hoy.', M, y); y+=16; }
     docs.forEach(function(d){
-      if(y>805){ doc.addPage(); y=50; cab(); }
-      var f=_filaRend(d); if(f.cuad) nCuad++; sMonto+=f.monto; if(f.necesita){ sBau+=f.baucher; sDif+=f.dif; }
+      if(y>555){ doc.addPage(); y=50; cab(); }
+      var f=_filaRend(d); if(f.cuad) nCuad++; sMonto+=f.monto; sNc+=f.nc; sCobr+=f.cobrar; if(f.necesita){ sBau+=f.baucher; sDif+=f.dif; }
       if(f.cuad) doc.setTextColor(30,127,84); else doc.setTextColor(200,64,46);
-      doc.text((f.folio.length>14?f.folio.slice(0,14):f.folio), X.folio, y);
-      doc.text((f.metodo.length>20?f.metodo.slice(0,19)+'.':f.metodo), X.metodo, y);
-      rText(CP.clp(f.monto), X.monto); rText(f.necesita?CP.clp(f.baucher):'-', X.baucher);
-      rText(f.necesita?CP.clp(f.dif):'-', X.dif); cText(f.cuad?'OK':'X', X.chk);
-      doc.setTextColor(0,0,0); y+=14;
+      doc.text((f.folio.length>16?f.folio.slice(0,16):f.folio), X.folio, y);
+      doc.text((f.metodo.length>26?f.metodo.slice(0,25)+'.':f.metodo), X.metodo, y);
+      rText(CP.clp(f.monto), X.monto); rText(f.nc>0?('-'+CP.clp(f.nc)):'-', X.nc); rText(CP.clp(f.cobrar), X.cobrado);
+      rText(f.necesita?CP.clp(f.baucher):'-', X.baucher); rText(f.necesita?CP.clp(f.dif):'-', X.dif); cText(f.cuad?'OK':'X', X.chk);
+      doc.setTextColor(0,0,0); y+=13;
+      if(f.ncNum){ doc.setFontSize(7); doc.setTextColor(120,120,120); doc.text('NC: '+f.ncNum, X.folio+6, y-2); doc.setTextColor(0,0,0); doc.setFontSize(8.5); y+=8; } // n° de nota de crédito bajo el folio
     });
     doc.setDrawColor(150); doc.line(M,y-9,W-M,y-9);
-    doc.setFont(undefined,'bold');
-    doc.text('TOTAL ('+docs.length+')', X.folio, y);
-    rText(CP.clp(sMonto), X.monto); rText(CP.clp(sBau), X.baucher); rText(CP.clp(sDif), X.dif); cText(nCuad+'/'+docs.length, X.chk);
-    doc.setFont(undefined,'normal'); y+=20;
-    doc.setFontSize(9.5);
-    function L(t,bold){ if(y>800){doc.addPage();y=50;} if(bold)doc.setFont(undefined,'bold'); doc.text(String(t),M,y); if(bold)doc.setFont(undefined,'normal'); y+=15; }
+    doc.setFont(undefined,'bold'); doc.text('TOTAL ('+docs.length+')', X.folio, y);
+    rText(CP.clp(sMonto), X.monto); rText(sNc>0?('-'+CP.clp(sNc)):'-', X.nc); rText(CP.clp(sCobr), X.cobrado); rText(CP.clp(sBau), X.baucher); rText(CP.clp(sDif), X.dif); cText(nCuad+'/'+docs.length, X.chk);
+    doc.setFont(undefined,'normal'); y+=24;
+    // #3 — TOTAL A RENDIR destacado (efectivo que el chofer entrega físicamente)
+    if(y>500){ doc.addPage(); y=50; }
+    doc.setFillColor(235,244,238); doc.setDrawColor(30,127,84); doc.roundedRect(M, y-15, 320, 30, 6, 6, 'FD');
+    doc.setFont(undefined,'bold'); doc.setFontSize(13); doc.setTextColor(15,94,60);
+    doc.text('A RENDIR (efectivo): '+CP.clp(c.efectivo), M+14, y+5); doc.setTextColor(0,0,0); doc.setFont(undefined,'normal'); doc.setFontSize(9.5); y+=36;
+    function L(t,bold){ if(y>555){doc.addPage();y=50;} if(bold)doc.setFont(undefined,'bold'); doc.text(String(t),M,y); if(bold)doc.setFont(undefined,'normal'); y+=15; }
+    // #1 — desglose por forma de pago (cobrado)
+    var dg=_desglosePago(docs), orden=['EFECTIVO','TRANSFERENCIA','DEPOSITO','GETNET','CHEQUE','FP30'];
+    var parts=orden.filter(function(k){return dg[k]>0;}).map(function(k){ return (k==='FP30'?'Credito FP30':(k.charAt(0)+k.slice(1).toLowerCase()))+': '+CP.clp(dg[k]); });
+    if(parts.length){ L('Por forma de pago (cobrado):', true); L('   '+parts.join('     ')); }
     L('Cuadradas: '+nCuad+' de '+docs.length+(docs.length&&nCuad===docs.length?'  -  TODO CUADRADO':(docs.length?('  -  '+(docs.length-nCuad)+' por revisar'):'')), true);
-    L('Efectivo a rendir: '+CP.clp(c.efectivo)+'   ·   Con comprobante: '+CP.clp(c.electronicoOk));
-    if(c.aCobrarDespues>0) L('A cobrar despues (credito): '+CP.clp(c.aCobrarDespues));
+    L('Con comprobante: '+CP.clp(c.electronicoOk)+(c.aCobrarDespues>0?('   ·   A cobrar despues (FP30): '+CP.clp(c.aCobrarDespues)):'')+(c.notasCredito>0?('   ·   Notas de credito: '+CP.clp(c.notasCredito)):''));
     var pend=(c.pendientes.length)+(c.arrastreN||0), pm=(c.pendienteMonto||0)+(c.arrastreMonto||0);
     if(pend>0) L('PENDIENTE sin comprobante: '+pend+' ('+CP.clp(pm)+')', true);
     try{ var pl=preliquidacion(); if(pl.rutaN){ L('Ruta vs rendido: '+(pl.cuadradoTotal?'CUADRADO':(pl.nDiferencia+' dif · '+pl.nSinRendir+' sin rendir'+(pl.nRevisar?(' · '+pl.nRevisar+' revisar'):''))), true); } }catch(e){}
-    y+=18; if(y>770){ doc.addPage(); y=60; }
+    y+=16; if(y>520){ doc.addPage(); y=60; }
     doc.text('Firma:',M,y);
-    if(firmaData){ try{ doc.addImage(firmaData,'PNG',M+44,y-16,170,56); }catch(e2){} }
-    else { doc.setDrawColor(150); doc.line(M+44,y,M+230,y); }
+    if(firmaData){ try{ doc.addImage(firmaData,'PNG',M+44,y-16,180,56); }catch(e2){} }
+    else { doc.setDrawColor(150); doc.line(M+44,y,M+270,y); }
     return doc;
   }catch(err){ return null; }
 }
@@ -1642,6 +1684,7 @@ function mostrarPago(){
   var mm=document.getElementById('mixtoMontos'); if(mm) mm.innerHTML='';
   var mr=document.getElementById('mixtoResumen'); if(mr) mr.textContent='';
   var cpb=document.getElementById('cpagoBox'); if(cpb) cpb.style.display='none';
+  _ncOn=false; var ncb=document.getElementById('ncBox'); if(ncb) ncb.style.display='none'; var ncc=document.getElementById('ncChk'); if(ncc){ ncc.style.color='transparent'; ncc.style.background='transparent'; ncc.style.borderColor='var(--line-2)'; } var ncn=document.getElementById('ncNum'); if(ncn) ncn.value=''; var ncm=document.getElementById('ncMonto'); if(ncm) ncm.value=''; var nca=document.getElementById('ncACobrar'); if(nca) nca.textContent='';
   try{ quitarComprobantePago(); }catch(e){}
   pintarVisada(); // refleja el timbre+firma que detectó la IA (o lo que el chofer marque)
   try{ pintarRutaMatch(); }catch(e){} // valida que el folio coincida con la ruta que planta asignó
@@ -1771,12 +1814,23 @@ function renderMixtoMontos(){
   resumenMixto();
 }
 function montoDoc(){ return (docPendiente && (Number(docPendiente.valorConIva)||Number(docPendiente.monto)))||0; }
+// ── Nota de crédito a favor del cliente: rebaja lo que paga (a cobrar = factura − NC) ──
+var _ncOn=false;
+function toggleNC(){ _ncOn=!_ncOn; var box=document.getElementById('ncBox'), chk=document.getElementById('ncChk');
+  if(box) box.style.display=_ncOn?'block':'none';
+  if(chk){ chk.style.color=_ncOn?'#fff':'transparent'; chk.style.background=_ncOn?'var(--green)':'transparent'; chk.style.borderColor=_ncOn?'var(--green)':'var(--line-2)'; }
+  if(!_ncOn){ var n=document.getElementById('ncNum'),m=document.getElementById('ncMonto'); if(n)n.value=''; if(m)m.value=''; }
+  actualizarACobrar();
+}
+function ncMontoVal(){ return _ncOn ? (parseInt(((document.getElementById('ncMonto')||{}).value||'').replace(/\D/g,''),10)||0) : 0; }
+function montoACobrar(){ return Math.max(0, montoDoc() - ncMontoVal()); }
+function actualizarACobrar(){ var el=document.getElementById('ncACobrar'); if(el){ var nc=ncMontoVal(); el.innerHTML = nc ? ('Factura '+_clp(montoDoc())+' − NC '+_clp(nc)+' = <b style="color:var(--green)">a cobrar '+_clp(montoACobrar())+'</b>') : ''; } try{ resumenMixto(); }catch(e){} }
 function _clp(n){ return window.CP ? CP.clp(n) : ('$'+(Number(n)||0)); }
 // Suma los montos del mixto y los compara con el total de la factura (aviso, no bloquea).
 function resumenMixto(){
   var cont=document.getElementById('mixtoMontos'); var res=document.getElementById('mixtoResumen'); if(!res) return;
   var suma=0; if(cont) Array.prototype.forEach.call(cont.querySelectorAll('input[data-mm]'), function(i){ suma+=parseInt((i.value||'').replace(/\D/g,''),10)||0; });
-  var tot=montoDoc();
+  var tot=montoACobrar();
   if(!suma){ res.textContent=''; return; }
   var dif=tot-suma;
   if(tot && dif!==0){ res.textContent='Suma '+_clp(suma)+' · total '+_clp(tot)+' · '+(dif>0?('faltan '+_clp(dif)):('sobran '+_clp(-dif))); res.style.color='var(--red)'; }
@@ -1875,7 +1929,7 @@ function enviarAPlanta(){
   // MIXTO: exigir el desglose de montos → si no, el cuadre cuenta efectivo=0 y la caja no calza.
   if(pagoSel==='MIXTO'){
     if(!mixtoComps.length){ showToast('Marca con qué método(s) pagó el cliente'); return; }
-    if(mixtoComps.length===1){ _det={}; _det[mixtoComps[0]]=montoDoc(); } // un solo método → todo el total a ese método
+    if(mixtoComps.length===1){ _det={}; _det[mixtoComps[0]]=montoACobrar(); } // un solo método → todo lo a cobrar (factura − NC) a ese método
     else if(!_det || mixtoComps.some(function(m){ return !_det[m]; })){
       showToast('Indica cuánto se pagó con cada método del mixto');
       var _mm=document.querySelector('#mixtoMontos input[data-mm]'); if(_mm){ try{ _mm.focus(); }catch(e){} }
@@ -1883,7 +1937,7 @@ function enviarAPlanta(){
     }
   }
   // Aviso suave: el desglose mixto no cuadra con el total (no bloquea).
-  if(_det){ var _s=0; Object.keys(_det).forEach(function(k){ _s+=_det[k]; }); var _t=montoDoc();
+  if(_det){ var _s=0; Object.keys(_det).forEach(function(k){ _s+=_det[k]; }); var _t=montoACobrar();
     if(_t && _s && _s!==_t){ if(!confirm('El desglose mixto suma '+_clp(_s)+' y el total es '+_clp(_t)+'.\n¿Enviar de todas formas?')) return; } }
   // Aviso suave: factura sin folio → planta no podrá conciliarla contra el sistema (no bloquea).
   if(!(docPendiente.folio && String(docPendiente.folio).trim())){
@@ -1913,6 +1967,9 @@ function enviarAPlanta(){
   if(firmante) ultimoReceptor = firmante; // comparte el nombre con la firma de recepción
   docPendiente.formaPago = formaPagoFinal();
   docPendiente.firmante = firmante;
+  // Nota de crédito a favor (N° + monto): la forma de pago aplica al neto (factura − NC).
+  docPendiente.notaCredito = _ncOn ? (((document.getElementById('ncNum')||{}).value||'').trim()) : '';
+  docPendiente.notaCreditoMonto = ncMontoVal();
   // Comprobante de pago (foto + datos leídos/corregidos) y desglose del mixto
   if(comprobantePago && comprobantePago.pdf){
     docPendiente.comprobantePagoPdf = comprobantePago.pdf;

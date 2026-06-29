@@ -104,6 +104,8 @@
       if (doc.pagoFecha) extra.pago_fecha = String(doc.pagoFecha);
       if (doc.pagoReferencia) extra.pago_referencia = String(doc.pagoReferencia);
       if (doc.pagoRutOrigen) extra.pago_rut_origen = String(doc.pagoRutOrigen);
+      if (doc.notaCredito) extra.nota_credito = String(doc.notaCredito);                          // N° nota de crédito a favor del cliente
+      if (doc.notaCreditoMonto) { var _ncm = Number(doc.notaCreditoMonto); if (_ncm) extra.nota_credito_monto = _ncm; } // monto de la NC
       if (doc.pagoDetalle) extra.pago_detalle = (typeof doc.pagoDetalle === 'string') ? doc.pagoDetalle : JSON.stringify(doc.pagoDetalle);
       var extraKeys = Object.keys(extra);
       var full = extraKeys.length ? Object.assign({}, row, extra) : row;
