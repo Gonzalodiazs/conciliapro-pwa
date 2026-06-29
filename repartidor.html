@@ -586,7 +586,7 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
     <div id="corrBtns" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">
       <button class="pago" data-cp="EFECTIVO" onclick="selCorr(this)">💵 Efectivo</button>
       <button class="pago" data-cp="DEBITO" onclick="selCorr(this)">💳 Débito</button>
-      <button class="pago" data-cp="CREDITO" onclick="selCorr(this)">💳 Crédito (FP30)</button>
+      <button class="pago" data-cp="FP30" onclick="selCorr(this)">💳 Crédito (FP30)</button>
       <button class="pago" data-cp="CHEQUE" onclick="selCorr(this)">🧾 Cheque</button>
       <button class="pago" data-cp="TRANSFERENCIA" onclick="selCorr(this)">🏦 Transferencia</button>
       <button class="pago" data-cp="DEPOSITO" onclick="selCorr(this)">🏧 Depósito caja vecina</button>
@@ -756,7 +756,7 @@ function renderCuadre(){
     var esArr=(_i < arr.length); // las facturas de días anteriores van primero
     var fp=(d.formaPago||'—'), tot=Number(d.valorConIva)||Number(d.monto)||0;
     var soloEfMix=(fp==='MIXTO'&&d.pagoDetalle&&Object.keys(d.pagoDetalle).length&&Object.keys(d.pagoDetalle).every(function(k){return k==='EFECTIVO';}));
-    var esCreditoPuro=(fp.indexOf('CREDITO')>=0 && fp.indexOf('MIXTO')<0);
+    var esCreditoPuro=((fp.indexOf('CREDITO')>=0||fp.indexOf('FP30')>=0) && fp.indexOf('MIXTO')<0);
     var requiere=(fp && fp!=='EFECTIVO' && !soloEfMix && !esCreditoPuro), estado;
     if(esCreditoPuro) estado='<span class="cq-ok" style="color:#7A5210">🕓 a cobrar</span>';
     else if(!requiere) estado='<span class="cq-ok">💵 efectivo</span>';
@@ -879,7 +879,7 @@ function openCorr(clientReqId, folio, fp, monto){
 }
 function closeCorr(){ var b=document.getElementById('corrBg'),s=document.getElementById('corrSheet'); if(b)b.classList.remove('open'); if(s)s.classList.remove('open'); _corrId=null; }
 function selCorr(el){ var btns=document.querySelectorAll('#corrBtns .pago'); for(var i=0;i<btns.length;i++) btns[i].classList.remove('on'); el.classList.add('on'); _corrFp=el.getAttribute('data-cp');
-  var nt=document.getElementById('corrNota'); if(nt){ nt.textContent=(_corrFp==='EFECTIVO')?'Pasará a efectivo a rendir (sin comprobante).':((_corrFp==='CREDITO')?'Crédito: a cobrar después (sin comprobante).':'Esta forma de pago requiere comprobante de respaldo.'); }
+  var nt=document.getElementById('corrNota'); if(nt){ nt.textContent=(_corrFp==='EFECTIVO')?'Pasará a efectivo a rendir (sin comprobante).':((_corrFp==='CREDITO'||_corrFp==='FP30')?'Crédito FP30: a cobrar después (sin comprobante).':'Esta forma de pago requiere comprobante de respaldo.'); }
 }
 function guardarCorr(){
   if(!_corrId){ closeCorr(); return; }
@@ -1052,7 +1052,7 @@ function _filaRend(d){
   var fp = (d.formaPago||'').toUpperCase();
   var baucher = Number(d.pagoMonto)||0;
   var esEf = fp==='EFECTIVO';
-  var esCred = fp.indexOf('CREDITO')>=0 && fp.indexOf('MIXTO')<0;
+  var esCred = (fp.indexOf('CREDITO')>=0||fp.indexOf('FP30')>=0) && fp.indexOf('MIXTO')<0;
   var esMixto = fp.indexOf('MIXTO')>=0;
   var dif=0, cuad=true, necesita=false;
   if(esEf || esCred){ cuad=true; dif=0; baucher=0; necesita=false; }                 // efectivo/crédito: sin baucher, cuadra por definición
@@ -1751,9 +1751,9 @@ function actualizarSubpagos(){
   var esCredito = pagoSel==='CREDITO' || (esMixto && mixtoComps.indexOf('CREDITO')>=0);
   var mb=document.getElementById('mixtoBox'), cb=document.getElementById('creditoBox');
   if(mb) mb.style.display = esMixto ? 'block':'none';
-  if(cb) cb.style.display = esCredito ? 'block':'none';
+  if(cb) cb.style.display = 'none'; // crédito = FP30 sin subtipo: ya no se pregunta CxP/DxP/Letra/P.A.
+  creditoTipo=null;
   if(!esMixto){ mixtoComps=[]; document.querySelectorAll('#mixtoBox .pago-sub').forEach(function(b){ b.classList.remove('on'); }); var mm=document.getElementById('mixtoMontos'); if(mm) mm.innerHTML=''; var mr=document.getElementById('mixtoResumen'); if(mr) mr.textContent=''; }
-  if(!esCredito){ creditoTipo=null; document.querySelectorAll('#creditoBox .pago-sub').forEach(function(b){ b.classList.remove('on'); }); }
   if(esMixto) renderMixtoMontos();
   // Comprobante de pago: visible para TODO pago no-efectivo (transferencia, débito, crédito, cheque, mixto con algo distinto de efectivo).
   var soloEfectivo = (pagoSel==='EFECTIVO') || (esMixto && mixtoComps.length>0 && mixtoComps.every(function(m){return m==='EFECTIVO';}));
@@ -1802,13 +1802,13 @@ function toggleMixtoComp(el){
 }
 // String final de forma de pago con su detalle (Mixto: con qué / Crédito: clasificación contable).
 function formaPagoFinal(){
+  // El crédito se registra como "FP30" (la condición del cliente), SIN subtipo contable (CxP/DxP/Letra/P.A.).
   if(pagoSel==='MIXTO'){
     var fp='MIXTO';
-    if(mixtoComps.length) fp += ' ('+mixtoComps.join('+')+')';
-    if(mixtoComps.indexOf('CREDITO')>=0 && creditoTipo) fp += ' · '+creditoTipo;
+    if(mixtoComps.length) fp += ' ('+mixtoComps.map(function(m){return m==='CREDITO'?'FP30':m;}).join('+')+')';
     return fp;
   }
-  if(pagoSel==='CREDITO' && creditoTipo) return 'CREDITO '+creditoTipo;
+  if(pagoSel==='CREDITO') return 'FP30';
   return pagoSel;
 }
 // ── Comprobante de pago: foto del respaldo (transferencia/no-efectivo) leída con la MISMA IA que la factura ──

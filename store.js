@@ -186,7 +186,7 @@
         var det = d.pagoDetalle || null;
         var efDet = (det && det.EFECTIVO) ? Number(det.EFECTIVO) : (fp === 'EFECTIVO' ? tot : 0);
         // Crédito (fiado a plazo): NO necesita comprobante; es "a cobrar después", no un pendiente del chofer.
-        var esCreditoPuro = fp.indexOf('CREDITO') >= 0 && fp.indexOf('MIXTO') < 0;
+        var esCreditoPuro = (fp.indexOf('CREDITO') >= 0 || fp.indexOf('FP30') >= 0) && fp.indexOf('MIXTO') < 0;
         var credDet = (det && det.CREDITO) ? Number(det.CREDITO) : (esCreditoPuro ? tot : 0);
         efectivo += efDet;
         aCobrarDespues += credDet;
@@ -206,7 +206,7 @@
         if ((d.estado || '') === 'FALLIDA') return; // no entregada: fuera del arrastre
         var fp = (d.formaPago || '').toUpperCase();
         if (!fp || fp === 'EFECTIVO') return;
-        if (fp.indexOf('CREDITO') >= 0 && fp.indexOf('MIXTO') < 0) return; // crédito puro no exige comprobante
+        if ((fp.indexOf('CREDITO') >= 0 || fp.indexOf('FP30') >= 0) && fp.indexOf('MIXTO') < 0) return; // crédito (FP30) puro no exige comprobante
         var det = d.pagoDetalle || null;
         var soloEfMix = fp === 'MIXTO' && det && Object.keys(det).length && Object.keys(det).every(function (k) { return k === 'EFECTIVO'; });
         if (soloEfMix || d.tieneComprobante) return;
