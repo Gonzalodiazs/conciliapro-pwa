@@ -1141,12 +1141,16 @@ function rendicionPdf(c, firmaData, nombre, patente){
     doc.setFont(undefined,'bold'); doc.text('TOTAL ('+docs.length+')', X.folio, y);
     rText(CP.clp(sMonto), X.monto); rText(sNc>0?('-'+CP.clp(sNc)):'-', X.nc); rText(CP.clp(sCobr), X.cobrado); rText(CP.clp(sBau), X.baucher); rText(CP.clp(sDif), X.dif); cText(nCuad+'/'+docs.length, X.chk);
     doc.setFont(undefined,'normal'); y+=24;
-    // #3 — Totales destacados: TOTAL A RENDIR (valor de las facturas, c/IVA) + efectivo en caja
+    // #3 — Totales destacados: TOTAL A RENDIR (carga asignada c/IVA, o facturas escaneadas si no hay ruta) + efectivo en caja
     if(y>500){ doc.addPage(); y=50; }
+    var _carga=0,_cargaN=0; try{ if(typeof entregasPlanta!=='undefined' && entregasPlanta){ entregasPlanta.forEach(function(e){ var _m=Number(e&&e.monto)||0; if(_m>0){ _carga+=_m; _cargaN++; } }); } }catch(eC){}
+    var _cargaIva=Math.round(_carga*1.19);                       // la ruta trae el monto NETO → c/IVA = x1.19
+    var _totRend=_cargaIva>0?_cargaIva:(c.totalFacturado||0);    // si hay ruta cargada: total de la carga asignada; si no: lo escaneado hoy
+    var _lblRend=_cargaIva>0?'TOTAL A RENDIR  ·  carga asignada (c/IVA)':'TOTAL A RENDIR  ·  facturas escaneadas (c/IVA)';
     var _by=y-15, _bh=42, _bw=375;
     doc.setFillColor(232,240,251); doc.setDrawColor(46,102,201); doc.roundedRect(M, _by, _bw, _bh, 7,7, 'FD');
-    doc.setFont(undefined,'normal'); doc.setFontSize(8); doc.setTextColor(46,102,201); doc.text('TOTAL A RENDIR  ·  valor de las facturas (c/IVA)', M+14, _by+15);
-    doc.setFont(undefined,'bold'); doc.setFontSize(17); doc.setTextColor(30,79,168); doc.text(CP.clp(c.totalFacturado), M+14, _by+35);
+    doc.setFont(undefined,'normal'); doc.setFontSize(8); doc.setTextColor(46,102,201); doc.text(_lblRend, M+14, _by+15);
+    doc.setFont(undefined,'bold'); doc.setFontSize(17); doc.setTextColor(30,79,168); doc.text(CP.clp(_totRend), M+14, _by+35);
     var _bx2=M+_bw+18;
     doc.setFillColor(235,244,238); doc.setDrawColor(30,127,84); doc.roundedRect(_bx2, _by, _bw, _bh, 7,7, 'FD');
     doc.setFont(undefined,'normal'); doc.setFontSize(8); doc.setTextColor(15,94,60); doc.text('EFECTIVO A ENTREGAR  ·  en caja', _bx2+14, _by+15);
@@ -1157,11 +1161,8 @@ function rendicionPdf(c, firmaData, nombre, patente){
     var dg=_desglosePago(docs), orden=['EFECTIVO','TRANSFERENCIA','DEPOSITO','GETNET','CHEQUE','FP30'];
     var parts=orden.filter(function(k){return dg[k]>0;}).map(function(k){ return (k==='FP30'?'Credito FP30':(k.charAt(0)+k.slice(1).toLowerCase()))+': '+CP.clp(dg[k]); });
     if(parts.length){ L('Por forma de pago (cobrado):', true); L('   '+parts.join('     ')); }
-    // Total de la ruta ASIGNADA por planta (cuando trae montos): valor c/IVA = neto x 1.19
-    try{ if(typeof entregasPlanta!=='undefined' && entregasPlanta && entregasPlanta.length){
-      var _rn=0,_rc=0; entregasPlanta.forEach(function(e){ var _m=Number(e&&e.monto)||0; if(_m>0){ _rn+=_m; _rc++; } });
-      if(_rn>0) L('Ruta asignada por planta: '+_rc+' facturas  ·  '+CP.clp(Math.round(_rn*1.19))+' c/IVA  (neto '+CP.clp(_rn)+')', true);
-    } }catch(eR){}
+    // Detalle de la carga asignada (count + base neta); el total c/IVA va destacado en el recuadro de arriba.
+    if(_cargaIva>0) L('Carga asignada por planta: '+_cargaN+' facturas  ·  base neta '+CP.clp(_carga)+'  ·  c/IVA '+CP.clp(_cargaIva), true);
     L('Cuadradas: '+nCuad+' de '+docs.length+(docs.length&&nCuad===docs.length?'  -  TODO CUADRADO':(docs.length?('  -  '+(docs.length-nCuad)+' por revisar'):'')), true);
     L('Con comprobante: '+CP.clp(c.electronicoOk)+(c.aCobrarDespues>0?('   ·   A cobrar despues (FP30): '+CP.clp(c.aCobrarDespues)):'')+(c.notasCredito>0?('   ·   Notas de credito: '+CP.clp(c.notasCredito)):''));
     var pend=(c.pendientes.length)+(c.arrastreN||0), pm=(c.pendienteMonto||0)+(c.arrastreMonto||0);
