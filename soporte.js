@@ -2,7 +2,7 @@
    Se inyecta solo. Incluir con: <script src="./soporte.js"></script> */
 (function(){
   if(window.__aipSoporte) return; window.__aipSoporte=1;
-  var MAIL='s.gonzalodavid@gmail.com';
+  var MAIL='gonzalo.diaz@mercadotec.cl';
   var PRIV='./privacidad.html';
   var css=
    '.aip-sop-btn{position:fixed;right:18px;bottom:18px;z-index:9000;display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#F2A03D,#E07F1A);color:#2A1A05;border:none;border-radius:26px;padding:12px 18px;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(199,117,20,.42);transition:transform .12s,box-shadow .12s}'
