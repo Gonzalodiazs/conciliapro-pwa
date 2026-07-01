@@ -100,7 +100,8 @@
         cliente: doc.cliente || '',
         repartidor: doc.repartidor || (data.repartidor ? data.repartidor.nombre : 'Repartidor'),
         patente: doc.patente || (veh ? veh.patente : ''),
-        pdf: doc.pdf || null,          // dataURL del PDF (foto escaneada)
+        pdf: doc.pdf || null,          // dataURL del PDF (foto escaneada) — se purga tras subir
+        pdfUrl: doc.pdfUrl || '',      // ruta del PDF en Storage (para verlo luego con URL firmada)
         archivo: doc.archivo || '',
         formato: doc.pdf ? 'PDF' : (doc.formato || ''),
         // Campos estructurados del timbre electrónico (SII) o ingreso manual
@@ -160,6 +161,14 @@
     purgarPdf: function (clientReqId) {
       var d = data.documentos.filter(function (x) { return x.clientReqId && x.clientReqId === clientReqId; })[0];
       if (d && d.pdf) { d.pdf = null; persist(); }
+      return !!d;
+    },
+    // Guarda la ruta del PDF en Storage tras subirlo (para poder VER la factura después con URL firmada,
+    // aunque el base64 local ya se haya purgado). No pisa una ruta existente con vacío.
+    setDocPdfUrl: function (clientReqId, url) {
+      if (!clientReqId || !url) return false;
+      var d = data.documentos.filter(function (x) { return x.clientReqId && x.clientReqId === clientReqId; })[0];
+      if (d) { d.pdfUrl = url; persist(); }
       return !!d;
     },
     // Corrige la forma de pago / monto de una factura YA enviada (la que aparece en el cuadre).

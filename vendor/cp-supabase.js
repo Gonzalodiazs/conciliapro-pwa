@@ -109,7 +109,9 @@
       if (doc.pagoDetalle) extra.pago_detalle = (typeof doc.pagoDetalle === 'string') ? doc.pagoDetalle : JSON.stringify(doc.pagoDetalle);
       var extraKeys = Object.keys(extra);
       var full = extraKeys.length ? Object.assign({}, row, extra) : row;
-      return postFila(full, extraKeys);
+      // Adjunta la ruta del PDF (pdf_url) al resultado para que la app la guarde local y pueda VER la factura
+      // luego con URL firmada. Es aditivo: NO altera la lógica de insert/idempotencia/auto-sanado de postFila.
+      return postFila(full, extraKeys).then(function (r) { if (r && typeof r === 'object') { r.pdf_url = pdf_url; } return r; });
     });
   }
 

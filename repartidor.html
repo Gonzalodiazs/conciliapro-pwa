@@ -221,7 +221,7 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
       <div class="md-status" id="mdStatus"><span class="md-ic" id="mdIc">●</span><span id="mdHeadline">Cargando tu día…</span></div>
       <div class="md-steps">
         <div class="md-step"><div class="md-s-ic">🚚</div><div class="md-s-info"><div class="md-s-l">Ruta · entregas</div><div class="md-s-v" id="mdRuta">—</div></div><div class="md-s-chk" id="mdChkRuta"></div></div>
-        <div class="md-step"><div class="md-s-ic">📄</div><div class="md-s-info"><div class="md-s-l">Facturas escaneadas</div><div class="md-s-v" id="mdFact">0 hoy</div></div><div class="md-s-chk" id="mdChkFact"></div></div>
+        <div class="md-step" onclick="verFacturasHoy()" style="cursor:pointer" role="button" tabindex="0" title="Ver las facturas de hoy"><div class="md-s-ic">📄</div><div class="md-s-info"><div class="md-s-l">Facturas escaneadas</div><div class="md-s-v" id="mdFact">0 hoy</div></div><div style="color:var(--blue);font-size:11px;font-weight:600;white-space:nowrap">Ver ›</div></div>
         <div class="md-step"><div class="md-s-ic">💰</div><div class="md-s-info"><div class="md-s-l">Cuadre · respaldos</div><div class="md-s-v" id="mdCuadre">—</div></div><div class="md-s-chk" id="mdChkCuadre"></div></div>
       </div>
       <button class="md-help-toggle" id="mdHelpToggle" onclick="toggleMdHelp()">¿Cómo cuadrar mi día? ▾</button>
@@ -307,6 +307,31 @@ button,.btn,.pago,.action,.hero-scan,.navbtn{touch-action:manipulation}
       </div>
       <div class="cq-n" id="cqN">0 facturas</div>
       <div id="cuadreBody"></div>
+    </div>
+    <style>
+      .fh-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+      .fh-row:last-child{border-bottom:none}
+      .fh-main{flex:1;min-width:0}
+      .fh-fol{font-family:var(--mono);font-weight:600;font-size:13px}
+      .fh-cli{font-size:12px;color:var(--ink);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .fh-meta{font-size:11px;color:var(--ink-faint);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+      .fh-monto{font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+      .fh-badge{display:inline-block;font-size:9px;font-weight:700;border-radius:5px;padding:1px 5px}
+      .fh-b-ent{background:rgba(30,127,84,.12);color:#0F5E3C}
+      .fh-b-no{background:rgba(200,64,46,.12);color:#9E2417}
+      .fh-b-comp{background:rgba(46,102,201,.12);color:#1E4FA8}
+      .fh-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+      .fh-ver{background:var(--panel);border:1px solid var(--line-2);border-radius:9px;padding:6px 11px;font-family:var(--sans);font-size:11.5px;font-weight:600;color:var(--blue);cursor:pointer;white-space:nowrap;min-height:34px}
+      .fh-ver:active{transform:scale(.96)}
+      .fh-ver[disabled]{color:var(--ink-faint);border-color:var(--line);cursor:default}
+    </style>
+    <div class="card" id="cardFacturas" style="animation-delay:.32s">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="sec-title">Facturas de hoy</div>
+        <button onclick="renderFacturasHoy()" class="mini-btn">↻ Actualizar</button>
+      </div>
+      <div class="cq-n" id="fhResumen">0 facturas</div>
+      <div id="facturasBody"></div>
     </div>
   </div>
   <!-- Scanner -->
@@ -735,7 +760,7 @@ function renderHome(){
   var _pf = (function(){ try{ return JSON.parse(localStorage.getItem('cp_perfil')||'{}'); }catch(e){ return {}; } })();
   if(rc) rc.innerHTML = '<span class="dot"></span>' + (_pf.patente ? (_pf.patente + ' · ') : '') + 'EN RUTA';
   cargarMisEntregas(); // La ruta la carga PLANTA (tabla `entregas` en Supabase); el chofer solo la ve.
-  try{ renderCuadre(); }catch(e){} try{ renderMiDia(); }catch(e){} // cuadre + panel "Mi día" (proceso del repartidor)
+  try{ renderCuadre(); }catch(e){} try{ renderMiDia(); }catch(e){} try{ renderFacturasHoy(); }catch(e){} // cuadre + panel "Mi día" + lista Facturas de hoy
 }
 // Escapa texto que viene de la tabla `entregas` (la carga PLANTA) antes de meterlo por innerHTML → evita XSS almacenado.
 function escEnt(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -780,6 +805,65 @@ function renderCuadre(){
       return '<div class="cq-row" style="opacity:.92"><div class="cq-main"><div class="cq-fol">'+escEnt(d.folio||'—')+'</div><div class="cq-meta" style="color:var(--red)">'+escEnt(d.motivoFallida||'no entregada')+'</div></div><span class="cq-warn" style="background:rgba(200,64,46,.1);color:var(--red)">🚫</span></div>';
     }).join('');
   }
+}
+// ── Facturas de hoy: vista de solo lectura (cliente/hora/estado) + abrir la factura escaneada ──
+function verFacturasHoy(){
+  try{ renderFacturasHoy(); }catch(e){}
+  var c=document.getElementById('cardFacturas'); if(!c) return;
+  try{ var tabs=document.querySelectorAll('.tabbar .tab'); for(var i=0;i<tabs.length;i++) tabs[i].classList.remove('active'); if(tabs[0]) tabs[0].classList.add('active'); closeFull(); }catch(e){}
+  try{ c.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){ var hb=document.getElementById('homeBody'); if(hb) hb.scrollTop=c.offsetTop; }
+  c.style.transition='box-shadow .3s'; c.style.boxShadow='0 0 0 2px var(--blue)';
+  setTimeout(function(){ c.style.boxShadow=''; }, 900);
+}
+function renderFacturasHoy(){
+  if(!window.CP || !CP.cuadreDia) return;
+  var c=CP.cuadreDia();
+  var docs=(c.docs||[]).concat(c.fallidas||[]).slice().sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+  var res=document.getElementById('fhResumen');
+  if(res) res.textContent = c.n+' factura'+(c.n===1?'':'s')+' hoy · '+CP.clp(c.totalFacturado)+((c.fallidasN>0)?(' · '+c.fallidasN+' no entregada'+(c.fallidasN===1?'':'s')):'');
+  var box=document.getElementById('facturasBody'); if(!box) return;
+  if(!docs.length){ box.innerHTML='<div style="color:var(--ink-faint);font-size:12px;padding:10px 0">Aún no escaneas facturas hoy. Usa <b>Escanear factura</b>.</div>'; return; }
+  box.innerHTML=docs.map(function(d){
+    var tot=Number(d.valorConIva)||Number(d.monto)||0;
+    var cli=escEnt(d.cliente||d.local||d.codigoCliente||'—');
+    var hora=''; try{ hora=new Date(d.ts).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}); }catch(e){}
+    var fp=escEnt(d.formaPago||'—');
+    var fallida=((d.estado||'')==='FALLIDA');
+    var estB=fallida?'<span class="fh-badge fh-b-no">🚫 no entregada</span>':'<span class="fh-badge fh-b-ent">✓ entregada</span>';
+    var compB=(!fallida && d.tieneComprobante)?'<span class="fh-badge fh-b-comp">📎 comprobante</span>':'';
+    var puedeVer=!!(d.pdf || d.pdfUrl);
+    var ver=puedeVer
+      ? '<button class="fh-ver" onclick="verFacturaPdf(\''+escEnt(d.clientReqId||'')+'\')">👁 Ver</button>'
+      : '<button class="fh-ver" disabled title="La imagen ya está en planta">sin copia</button>';
+    return '<div class="fh-row"><div class="fh-main"><div class="fh-fol">'+escEnt(d.folio||'—')+'</div><div class="fh-cli">'+cli+'</div><div class="fh-meta">'+(hora?('<span>'+hora+'</span> · '):'')+'<span>'+fp+'</span>'+estB+compB+'</div></div><div class="fh-right"><div class="fh-monto">'+CP.clp(tot)+'</div>'+ver+'</div></div>';
+  }).join('');
+}
+// Abre la factura escaneada: 1) PDF local si aún está en el teléfono, 2) si ya se purgó, URL FIRMADA desde el
+// Storage privado con el cp_token del chofer (el bucket permite lectura a autenticados).
+function verFacturaPdf(clientReqId){
+  if(!clientReqId){ try{showToast('Factura sin identificador');}catch(e){} return; }
+  var d=(window.CP&&CP.documentos?CP.documentos():[]).filter(function(x){return x.clientReqId===clientReqId;})[0];
+  if(!d){ try{showToast('No encuentro la factura');}catch(e){} return; }
+  if(d.pdf){ try{ guardarArchivo(d.pdf.split(',')[1], 'factura-'+(d.folio||'doc')+'.pdf', 'application/pdf'); return; }catch(e){} }
+  if(d.pdfUrl){ _abrirComprobante(d.pdfUrl); return; }
+  try{ showToast('La imagen ya está en planta · no queda copia en el teléfono'); }catch(e){}
+}
+function _abrirComprobante(url){
+  try{
+    var parts=String(url).split('/comprobantes/'); var path=(parts.length>1)?parts[1].split('?')[0]:'';
+    if(!path){ showToast('Ruta de la factura inválida'); return; }
+    var tk=''; try{ tk=localStorage.getItem('cp_token')||''; }catch(e){}
+    if(!tk){ showToast('Inicia sesión para ver la factura'); return; }
+    var SB=(window.CPSupabase&&CPSupabase.URL)?CPSupabase.URL:'https://ekmkzaogpnnqcctcnqpr.supabase.co';
+    var KEY=(window.CPSupabase&&CPSupabase.KEY)?CPSupabase.KEY:'';
+    try{ showToast('Abriendo factura…'); }catch(e){}
+    fetch(SB+'/storage/v1/object/sign/comprobantes/'+path, {
+      method:'POST', headers:{'Content-Type':'application/json', apikey:KEY, Authorization:'Bearer '+tk}, body:JSON.stringify({expiresIn:3600})
+    }).then(function(r){ return r.ok?r.json():null; }).then(function(j){
+      if(j&&j.signedURL){ var full=SB+'/storage/v1'+j.signedURL; try{ window.open(full,'_blank'); }catch(e){ location.href=full; } }
+      else { showToast('No se pudo abrir la factura (revisa tu sesión)'); }
+    }).catch(function(){ showToast('Sin conexión para abrir la factura'); });
+  }catch(e){ try{showToast('No se pudo abrir la factura');}catch(_){} }
 }
 // Panel "Mi día": el repartidor ve claro su proceso (ruta → facturas → cuadre) y qué le falta.
 function renderMiDia(){
@@ -2008,9 +2092,11 @@ function enviarAPlanta(){
         else if(res.permanente){ cerrarTrasEnvio('Guardada'+_fol+_mon+' · ⚠ revisar datos ('+res.pendientes+' en cola)', 'warn'); }
         else { cerrarTrasEnvio('Guardada'+_fol+_mon+' · se subirá con señal ('+res.pendientes+' en cola)', 'warn'); }
       } else {
-        // Subió OK: el PDF ya está en Storage → libera el base64 local (evita llenar localStorage a media jornada).
+        // Subió OK: guarda la RUTA del PDF en Storage (para poder ver la factura luego con URL firmada) y
+        // recién ahí libera el base64 local (evita llenar localStorage a media jornada).
         var _crid=(docPendiente&&docPendiente.clientReqId);
-        if(_crid && window.CP && CP.purgarPdf){ try{ CP.purgarPdf(_crid); }catch(e){} }
+        var _purl=(res&&res.pdf_url)||'';
+        if(_crid && window.CP){ if(_purl && CP.setDocPdfUrl){ try{ CP.setDocPdfUrl(_crid,_purl); }catch(e){} } if(CP.purgarPdf){ try{ CP.purgarPdf(_crid); }catch(e){} } }
         // Encadena la firma: si la factura calza con una entrega de la ruta aún sin firmar, abre la firma.
         var _ent=(docPendiente&&docPendiente.folio)?(entregasPlanta||[]).filter(function(e){return e&&e.folio&&String(e.folio)===String(docPendiente.folio)&&e.estado!=='entregada';})[0]:null;
         cerrarTrasEnvio('✓ Enviada a planta'+_fol+_mon, 'ok');
